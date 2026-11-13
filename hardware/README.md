@@ -16,6 +16,8 @@ Mạch của một thiết bị (`chau-01`): ESP32 đọc độ ẩm đất và 
 
 ## Sơ đồ nối dây
 
+![Sơ đồ nối dây](wiring.svg)
+
 Nguồn 5V lấy từ chân **VIN** của ESP32 (khi cắm USB hoặc sạc dự phòng, VIN ra 5V). Hai thanh nguồn của breadboard lấy điện từ cọc vít **DC+** và **DC-** của relay: thanh + là 5V (VIN), thanh - là GND. Các chỗ ghi "5V" và "GND" bên dưới lấy từ hai thanh này (hoặc trực tiếp từ VIN/GND của ESP32, cùng một điểm nối).
 
 | Module | Chân module | Nối tới ESP32 |
