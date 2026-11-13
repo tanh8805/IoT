@@ -20,10 +20,10 @@
 
 **Thành viên và phân công**
 
-| Thành viên | Phụ trách |
-|---|---|
-| Bùi Tuấn Anh | Thiết bị, firmware ESP32, MQTT broker |
-| Trịnh Quốc Đạt | Backend NestJS, frontend |
+| Thành viên | MSV | Phụ trách |
+|---|---|---|
+| Bùi Tuấn Anh | B23DCCN012 | Thiết bị, firmware ESP32, MQTT broker |
+| Trịnh Quốc Đạt | B23DCCN152 | Backend NestJS, frontend |
 
 **Giảng viên hướng dẫn:** Kim Ngọc Bách.
 
