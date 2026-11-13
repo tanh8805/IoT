@@ -138,6 +138,7 @@ void publishTelemetry(int soilRaw, int soilPct, float lux) {
 
 void netBegin() {
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);             // tắt tiết kiệm điện WiFi vì chế độ này hay làm rớt MQTT
   WiFi.setAutoReconnect(true);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   configTime(0, 0, "pool.ntp.org");
@@ -145,6 +146,8 @@ void netBegin() {
   mqtt.setServer(MQTT_HOST, MQTT_PORT);
   mqtt.setCallback(onMqttMessage);
   mqtt.setBufferSize(512);
+  mqtt.setKeepAlive(30);            // nới thời gian giữ kết nối từ 15 lên 30 giây
+  mqtt.setSocketTimeout(5);         // broker không trả lời thì bỏ sau 5 giây, không đứng chờ 15 giây
 }
 
 void netLoop() {
