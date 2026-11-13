@@ -1,0 +1,11 @@
+# Backend được đọc và ghi mọi topic của thiết bị.
+user backend
+topic readwrite devices/#
+
+# Thiết bị: %u là tên đăng nhập MQTT, trùng mã thiết bị (chau-01, chau-02, ...),
+# nên mỗi thiết bị chỉ dùng được topic của chính nó.
+pattern write devices/%u/telemetry
+pattern write devices/%u/status
+pattern write devices/%u/ack
+pattern read devices/%u/cmd
+pattern read devices/%u/config
