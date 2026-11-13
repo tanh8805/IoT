@@ -56,8 +56,8 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 | F04 | Nhận telemetry | Để `chau-01` chạy vài phút, kiểm tra bảng telemetry trong DB | Có bản ghi mới khoảng 10 giây một lần, đúng giá trị `soil_pct`, `lux`, `pump`, `curtain` | |
 | F05 | Dashboard | Mở dashboard, so số hiển thị với Serial Monitor; nhúng tay vào đất ẩm rồi khô | Số đo cập nhật gần như theo thời gian thực và khớp với thiết bị | |
 | F06 | Lệnh bơm và ack | Bấm "Bơm 5 giây" trên web | Bơm chạy đúng 5 giây, web nhận ack `ok` và lệnh chuyển sang đã xác nhận | |
-| F07 | Lệnh màn che và ack | Bấm "Đóng màn" rồi "Mở màn" | Servo quay 90° rồi về 0°, nhận ack `ok` | |
-| F08 | Phát hiện offline | Rút điện ESP32 | Trong khoảng vài chục giây (keepalive của MQTT), trạng thái thiết bị chuyển offline nhờ Last Will | |
+| F07 | Lệnh màn che và ack | Bấm "Đóng màn" rồi "Mở màn" | Servo quay 90° rồi về 0°, nhận ack `ok` | Chưa có web nên thử qua MQTT: gửi `curtain_close` (`cmd_id` `test-close-002`) lúc 11:26:04, ack `{"result":"ok","msg":""}` về trong cùng giây. Serial in `Man: DONG`, dòng định kỳ đổi thành `man: DONG`. Sau đó lux 167 (dưới 5000) giữ 10 giây nên màn tự mở lại, Serial in `Man: MO`. Góc quay thật của servo chưa được ghi nhận bằng mắt trong bài này. |
+| F08 | Phát hiện offline | Rút điện ESP32 | Trong khoảng vài chục giây (keepalive của MQTT), trạng thái thiết bị chuyển offline nhờ Last Will | Rút điện `chau-01` (rút USB). Bản tin cuối lúc 11:34:28, broker phát `offline` (Last Will) lúc 11:35:14, tức 46 giây sau bản tin cuối. Broker coi client chết khi quá 1,5 lần keepalive (30 s) kể từ gói cuối cùng nên khớp với 45 giây. Vì telemetry cách nhau 10 giây, mốc rút điện nằm trong 10 giây sau 11:34:28, độ trễ phát hiện khoảng 36 đến 46 giây. Cắm lại điện: `online` lúc 11:36:17, telemetry đầu tiên lúc 11:36:22. |
 | F09 | Cảnh báo | Rút cảm biến đất ra để đất "khô" liên tục; hoặc rút điện ESP32 | Hệ thống tạo cảnh báo (đất khô / `auto_blocked` / thiết bị offline) và hiển thị trên web | |
 | F10 | Khóa thiết bị | Admin khóa/thu hồi `chau-01` trên web | Backend bỏ qua dữ liệu từ thiết bị này, không gửi lệnh xuống nữa | |
 
@@ -65,11 +65,11 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 
 | Mã | Mục tiêu | Cách thực hiện | Kết quả mong đợi | Kết quả thực tế |
 |---|---|---|---|---|
-| NF01 | Độ trễ lệnh | `measure_cmd_latency.py --device chau-02 -n 20` (thiết bị giả), rồi `--device chau-01` (thiết bị thật) | Mọi lệnh có ack, độ trễ min/trung bình/max được ghi lại để đối chiếu với yêu cầu của đề | Thiết bị giả `chau-02`, 20 lệnh: nhận 20 ack, mất 0. min 0,5 ms / trung bình 0,7 ms / max 0,8 ms. Đo trên cùng máy với broker nên chưa gồm WiFi và ESP32. Chưa đo trên `chau-01`. |
-| NF02 | Tỷ lệ mất bản tin | `measure_telemetry.py --device chau-01 --minutes 30` | Tỷ lệ mất gần 0%, khoảng cách giữa các bản tin xấp xỉ 10 giây | Thiết bị giả `chau-02`, 1 phút: kỳ vọng 6, nhận 6, mất 0%. Khoảng cách 10,00 s ở cả min/trung bình/max. Mẫu quá ngắn và chưa đo trên `chau-01`. |
+| NF01 | Độ trễ lệnh | `measure_cmd_latency.py --device chau-02 -n 20` (thiết bị giả), rồi `--device chau-01` (thiết bị thật) | Mọi lệnh có ack, độ trễ min/trung bình/max được ghi lại để đối chiếu với yêu cầu của đề | Thiết bị thật `chau-01` qua WiFi, 20 lệnh `pump_off`: nhận 20 ack, mất 0. min 7,2 ms / trung bình 15,3 ms / max 76,8 ms (lệnh đầu 76,8 ms, các lệnh sau phần lớn 7 đến 31 ms). Đo từ máy chạy broker, cùng mạng LAN. Thiết bị giả `chau-02` cùng bài: 0,5 / 0,7 / 0,8 ms. |
+| NF02 | Tỷ lệ mất bản tin | `measure_telemetry.py --device chau-01 --minutes 30` | Tỷ lệ mất gần 0%, khoảng cách giữa các bản tin xấp xỉ 10 giây | Thiết bị thật `chau-01`, 5 phút (chưa chạy mẫu 30 phút): kỳ vọng 30, nhận 29, mất 3,3% (1 bản, trong sai số ±1 do lệch pha). Khoảng cách giữa các bản tin min 9,93 s / trung bình 10,36 s / max 20,01 s; có đúng 1 khoảng lớn hơn 15 s, tương ứng một bản bị mất. Trong 5 phút đó thiết bị nối lại MQTT 1 lần (broker ghi `session taken over`). Thiết bị giả `chau-02`, 1 phút: 6/6, mất 0%. |
 | NF03 | Mất mạng rồi khôi phục | Tắt WiFi/router vài phút trong khi đất khô, bật lại | Trong lúc mất mạng ESP32 vẫn tự tưới (logic chạy trên thiết bị). Khi có mạng lại, tự kết nối lại MQTT, trạng thái về online, telemetry gửi tiếp | |
-| NF04 | Bản tin telemetry trùng | Xem cột "bản tin trùng ts" trong `measure_telemetry.py`; kiểm tra DB không có hai bản ghi trùng `ts` | Không có bản tin trùng, hoặc backend loại được bản trùng | Thiết bị giả `chau-02`, 1 phút: 0 bản trùng ts. Chưa kiểm tra phía backend và thiết bị thật. |
-| NF05 | Lệnh trùng (cùng `cmd_id`) | `send_duplicate_cmd.py --device chau-02`, rồi `--device chau-01` sau khi nạp bản firmware mới | Lần 1 ack `ok`; lần 2 ack `ok` với `msg` là `duplicate` và không thực hiện lại | Thiết bị giả `chau-02`: PASS cả hai lần. Chưa chạy trên `chau-01` (firmware mới chưa biên dịch/nạp). |
+| NF04 | Bản tin telemetry trùng | Xem cột "bản tin trùng ts" trong `measure_telemetry.py`; kiểm tra DB không có hai bản ghi trùng `ts` | Không có bản tin trùng, hoặc backend loại được bản trùng | `chau-01`, 5 phút (29 bản): 0 bản trùng ts. `chau-02`, 1 phút: 0 bản trùng. Chưa kiểm tra phía backend. |
+| NF05 | Lệnh trùng (cùng `cmd_id`) | `send_duplicate_cmd.py --device chau-02`, rồi `--device chau-01` sau khi nạp bản firmware mới | Lần 1 ack `ok`; lần 2 ack `ok` với `msg` là `duplicate` và không thực hiện lại | PASS trên cả thiết bị giả `chau-02` và thiết bị thật `chau-01` (firmware 1.0.7): lần 1 ack `ok`, lần 2 ack `ok` với `msg` là `duplicate`. |
 | NF06 | Chạy liên tục | Cho `chau-01` chạy liên tục 24 giờ, theo dõi telemetry và bộ nhớ | Không treo, không reset ngoài ý muốn, telemetry không đứt quãng | |
 
 ## Kiểm thử bảo mật
@@ -87,7 +87,10 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 
 ## Ghi chú về kết quả đã chạy
 
-- Chạy ngày 13/11/2026 trên Fedora, Mosquitto 2.1.2 trong Docker, Python 3.12, paho-mqtt 2.2.0.
-- Các số đo của `chau-02` lấy từ thiết bị giả chạy trên cùng máy với broker, nên chỉ chứng minh script và broker hoạt động đúng. Chúng không thay cho số đo với ESP32 thật qua WiFi (NF01, NF02 trên `chau-01` vẫn cần chạy).
-- Last Will của thiết bị giả đã thử: dừng `fake_device.py` bằng `kill -9` thì topic `devices/chau-02/status` chuyển thành `offline` (retained). Đây chưa phải bài F08, vốn cần rút điện ESP32 thật.
-- Các bài để trống chưa được chạy.
+- Chạy ngày 13/11/2026 trên Fedora, Mosquitto 2.1.2 trong Docker, Python 3.12, paho-mqtt 2.2.0. Firmware thiết bị: 1.0.7.
+- Các bài trên `chau-01` chạy từ máy laptop đang chạy broker, thiết bị nối WiFi cùng mạng LAN. Thiết bị cấp điện qua USB.
+- WiFi của thiết bị chập chờn ở nhiều thời điểm khi thử nghiệm: `ping` từng mất 45% đến 87% gói, và broker ghi nhiều lần thiết bị nối lại. Các số đo NF01, NF02 phản ánh điều kiện mạng này, nên cần chạy lại khi mạng ổn định hơn và với mẫu dài hơn (30 phút).
+- Số đo của `chau-02` lấy từ thiết bị giả chạy trên cùng máy với broker, chỉ chứng minh script và broker hoạt động đúng, không thay cho số đo với ESP32 thật.
+- Bài F08 dùng bản tin cuối cùng làm mốc nên độ trễ có biên sai số 10 giây. Last Will của thiết bị giả cũng đã thử riêng bằng `kill -9`.
+- Cổng serial của máy đọc ra dữ liệu bị lặp và lẫn ký tự lạ (nghi cáp USB hoặc cổng), nên các số liệu ở trên lấy từ broker, không từ Serial; riêng F07 có dùng thêm dòng Serial `Man: DONG`.
+- Các bài để trống chưa được chạy (các bài cần backend, web, hoặc cần thao tác dài như NF03, NF06).
