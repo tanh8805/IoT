@@ -29,7 +29,8 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 | Sketch | Kiểm tra | Kỳ vọng |
 |---|---|---|
 | `relay_test` | Relay trên D14 (jumper L) | Bật 5s rồi tắt 5s, nghe tiếng "tách" và bơm chạy/dừng theo |
-| `servo_test` | Servo trên D13 | Quay 0° → 90° → 0° mỗi 2 giây |
+| `servo_test` | Servo trên D12 | Quay 0° → 90° → 0° mỗi 2 giây |
+| `servo_pin_scan` | Tìm lỗi đường tín hiệu servo | Phát tín hiệu trên D13, D18, D19, D21, D22, D23 cùng lúc; chuyển dây cam lần lượt qua từng chân, servo quay ở chân nào thì chân đó tốt |
 | `i2c_scan` | BH1750 trên SDA=D25, SCL=D33 | In `0x23 (BH1750)`. Mức D25/D33 bằng 1 nghĩa là module đã có điện trở kéo lên |
 | `bh1750_wire_test` | Tìm dây BH1750 hỏng hoặc lỏng | Mỗi giây in một dòng kết luận. `TOT` nghĩa là cả 4 dây đều ổn. Lắc từng dây để tìm dây chập chờn |
 
