@@ -48,9 +48,11 @@ bool curtainSet(bool closed) {
 #if HAS_SERVO
   if (pumpOn) {                          // chờ bơm tắt rồi mới quay servo
     pendingCurtain = closed ? 1 : 0;
+    if (closed != curtainClosed) Serial.printf("Man: cho bom tat roi moi %s\n", closed ? "DONG" : "MO");
     return true;
   }
   curtainServo.write(closed ? SERVO_CLOSED_DEG : SERVO_OPEN_DEG);
+  if (closed != curtainClosed) Serial.printf("Man: %s\n", closed ? "DONG" : "MO");
   curtainClosed = closed;
   servoMovedMs = millis();
   return true;

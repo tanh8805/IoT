@@ -32,7 +32,12 @@ void loop() {
     autoCurtain(lux);
     publishTelemetry(soilRaw, soilPct, lux);
 
-    Serial.printf("dat: %d (%d%%) | lux: %.0f | bom: %s | auto_blocked: %d\n",
-                  soilRaw, soilPct, lux, pumpOn ? "BAT" : "tat", autoBlocked);
+#if HAS_SERVO
+    const char* curtainText = curtainClosed ? "DONG" : "MO";
+#else
+    const char* curtainText = "-";
+#endif
+    Serial.printf("dat: %d (%d%%) | lux: %.0f | bom: %s | man: %s | auto_blocked: %d\n",
+                  soilRaw, soilPct, lux, pumpOn ? "BAT" : "tat", curtainText, autoBlocked);
   }
 }

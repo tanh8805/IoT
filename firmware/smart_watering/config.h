@@ -1,7 +1,7 @@
 #pragma once
 
 #define DEVICE_ID   "chau-01"
-#define FW_VERSION  "1.0.6"
+#define FW_VERSION  "1.0.7"
 
 #define HAS_LIGHT 1
 #define HAS_SERVO 1
