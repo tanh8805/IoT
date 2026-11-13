@@ -9,5 +9,3 @@
 #define MQTT_PORT 1883
 #define MQTT_USER "chau-01"
 #define MQTT_PASS "mat_khau_mqtt"
-
-#define OTA_PASS  "mat_khau_ota"

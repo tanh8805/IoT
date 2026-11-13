@@ -9,7 +9,7 @@ Sketch Arduino nằm ở `smart_watering/`. Board: ESP32 DevKit (`esp32:esp32:es
 | `sensors.h` | Đọc độ ẩm đất và ánh sáng BH1750 |
 | `actuators.h` | Điều khiển bơm (qua relay) và servo màn che |
 | `automation.h` | Logic tự tưới và tự kéo màn, chạy ngay trên ESP32 |
-| `net.h` | WiFi, OTA, MQTT, nhận lệnh/cấu hình, gửi telemetry |
+| `net.h` | WiFi, MQTT, nhận lệnh/cấu hình, gửi telemetry |
 | `secrets.example.h` | Mẫu cấu hình bí mật |
 
 ## Thư viện cần cài
@@ -25,7 +25,7 @@ Ngoài ra cần cài board package **esp32 by Espressif Systems** trong Boards M
 
 ## Tạo secrets.h
 
-`secrets.h` chứa mật khẩu WiFi, MQTT, OTA nên bị `.gitignore` chặn, không được commit.
+`secrets.h` chứa mật khẩu WiFi và MQTT nên bị `.gitignore` chặn, không được commit.
 
 ```bash
 cd firmware/smart_watering
@@ -40,19 +40,23 @@ Rồi sửa `secrets.h`:
 | `MQTT_HOST` | IP của máy chạy Mosquitto (xem `deployment/README.md`) |
 | `MQTT_USER` | `chau-01` |
 | `MQTT_PASS` | Mật khẩu của user `chau-01` trong `.env` ở gốc repo |
-| `OTA_PASS` | Mật khẩu tự đặt, dùng khi nạp qua WiFi |
 
 ## Nạp code
 
-**Lần đầu: qua USB.** Mở `smart_watering/smart_watering.ino`, chọn board *ESP32 Dev Module* và cổng USB (thường `/dev/ttyUSB0`), rồi nạp. Nếu bị `Permission denied` trên Linux thì thêm user vào nhóm `dialout` (Fedora) rồi đăng nhập lại:
+Firmware chỉ nạp qua USB. Cắm ESP32 vào máy, rồi từ thư mục `firmware/smart_watering`:
 
 ```bash
-sudo usermod -aG dialout $USER
+arduino-cli compile --fqbn esp32:esp32:esp32 .
+arduino-cli upload  --fqbn esp32:esp32:esp32 -p /dev/ttyUSB0 .
+arduino-cli monitor -p /dev/ttyUSB0 -c baudrate=115200
 ```
 
-Mở Serial Monitor ở 115200 baud. Khi thấy `WiFi OK, IP: ...` và `MQTT da ket noi` là thiết bị đã lên mạng.
+- Cổng thường là `/dev/ttyUSB0`; kiểm tra bằng `arduino-cli board list`.
+- Mỗi lúc chỉ một chương trình dùng được cổng USB. Đóng serial monitor trước khi nạp, nếu không `upload` báo `port is busy`.
+- Nếu bị `Permission denied` trên Linux thì thêm user vào nhóm `dialout` (Fedora) rồi đăng nhập lại: `sudo usermod -aG dialout $USER`.
+- Dùng Arduino IDE thì mở `smart_watering/smart_watering.ino` và chọn board *ESP32 Dev Module*.
 
-**Các lần sau: qua WiFi (OTA).** Máy tính và ESP32 phải cùng mạng. Trong Arduino IDE vào *Tools → Port*, chọn **`chau-01 at <IP>`** trong mục Network ports, nạp như bình thường và nhập `OTA_PASS` khi được hỏi.
+Khi Serial Monitor (115200 baud) hiện `WiFi OK, IP: ...` và `MQTT da ket noi` là thiết bị đã lên mạng.
 
 ## Tăng FW_VERSION
 

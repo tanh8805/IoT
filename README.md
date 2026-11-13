@@ -134,7 +134,7 @@ Chi tiết và cách kiểm tra bằng `mosquitto_sub` ở [deployment/README.md
 
 ### 4.2 Firmware (`firmware/`)
 
-Cài thư viện, tạo `secrets.h` từ `secrets.example.h`, nạp lần đầu qua USB, các lần sau qua WiFi (OTA). Xem [firmware/README.md](firmware/README.md). Sơ đồ nối dây ở [hardware/README.md](hardware/README.md).
+Cài thư viện, tạo `secrets.h` từ `secrets.example.h`, biên dịch và nạp qua USB bằng `arduino-cli`. Xem [firmware/README.md](firmware/README.md). Sơ đồ nối dây ở [hardware/README.md](hardware/README.md).
 
 ### 4.3 Thiết bị giả và test (`tests/`)
 

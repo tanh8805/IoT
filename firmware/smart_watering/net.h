@@ -1,6 +1,5 @@
 #pragma once
 #include <WiFi.h>
-#include <ArduinoOTA.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <Preferences.h>
@@ -21,7 +20,7 @@ const String T_CMD       = T_BASE + "/cmd";
 const String T_ACK       = T_BASE + "/ack";
 const String T_CONFIG    = T_BASE + "/config";
 
-bool otaStarted = false;
+bool wifiAnnounced = false;
 unsigned long lastMqttTry = 0;
 
 void loadConfig() {
@@ -151,15 +150,11 @@ void netBegin() {
 }
 
 void netLoop() {
-  if (WiFi.status() == WL_CONNECTED && !otaStarted) {
+  if (WiFi.status() == WL_CONNECTED && !wifiAnnounced) {
     Serial.print("WiFi OK, IP: ");
     Serial.println(WiFi.localIP());
-    ArduinoOTA.setHostname(DEVICE_ID);
-    ArduinoOTA.setPassword(OTA_PASS);
-    ArduinoOTA.begin();
-    otaStarted = true;
+    wifiAnnounced = true;
   }
-  if (otaStarted) ArduinoOTA.handle();
   mqttConnect();
   mqtt.loop();
 }
