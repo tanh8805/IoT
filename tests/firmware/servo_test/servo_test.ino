@@ -1,13 +1,13 @@
 // Test servo: 0 độ -> 90 độ -> 0 độ, mỗi bước cách nhau 2 giây. Cần thư viện ESP32Servo.
 #include <ESP32Servo.h>
 
-const int PIN_SERVO = 13;
+const int PIN_SERVO = 12;
 Servo servo;
 
 void setup() {
   Serial.begin(115200);
   servo.attach(PIN_SERVO);
-  Serial.println("servo_test: chan 13");
+  Serial.println("servo_test: chan 12");
 }
 
 void loop() {
