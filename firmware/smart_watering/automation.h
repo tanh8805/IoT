@@ -29,7 +29,7 @@ void autoWatering(int soilPct) {
   autoDoses++;
 }
 
-// Dùng hai ngưỡng lux (đóng 20000, mở 10000) và bắt giữ 5 phút mới đổi,
+// Dùng hai ngưỡng lux cách xa nhau và bắt giữ CURTAIN_HOLD_MS mới đổi,
 // để màn không đóng mở liên tục mỗi khi có mây bay qua.
 unsigned long luxChangeSince = 0;
 

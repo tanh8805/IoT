@@ -1,7 +1,7 @@
 #pragma once
 
 #define DEVICE_ID   "chau-01"
-#define FW_VERSION  "1.0.0"
+#define FW_VERSION  "1.0.6"
 
 #define HAS_LIGHT 1
 #define HAS_SERVO 1
@@ -22,11 +22,12 @@ const unsigned long PUMP_MAX_MS    = 15000;
 const unsigned long AUTO_PUMP_MS   = 2000;
 const unsigned long SOAK_MS        = 60000;
 const int           MAX_AUTO_DOSES = 5;
-const unsigned long CURTAIN_HOLD_MS = 5UL * 60 * 1000;
+const unsigned long CURTAIN_HOLD_MS = 10000;
 
 const int   DEFAULT_SOIL_THRESHOLD = 40;
-const float DEFAULT_LUX_CLOSE      = 20000;
-const float DEFAULT_LUX_OPEN       = 10000;
+// Hai ngưỡng cách xa nhau và phải giữ CURTAIN_HOLD_MS mới đổi, để màn không đóng mở liên tục.
+const float DEFAULT_LUX_CLOSE      = 10000;
+const float DEFAULT_LUX_OPEN       = 5000;
 
 const int SERVO_OPEN_DEG   = 0;
 const int SERVO_CLOSED_DEG = 90;

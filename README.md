@@ -53,7 +53,7 @@ Logic tưới và che nắng chạy ngay trên ESP32 nên mất mạng thiết b
 
 **Quy tắc tự động (giá trị mặc định trong `firmware/smart_watering/config.h`)**
 - Độ ẩm đất dưới ngưỡng (40%): bơm một đợt 2 giây, chờ 1 phút cho nước thấm rồi đo lại. Sau 5 đợt mà đất vẫn khô thì dừng tự tưới (`auto_blocked`), vì có thể bể cạn hoặc cảm biến tuột.
-- Ánh sáng trên 20000 lux liên tục 5 phút thì đóng màn; dưới 10000 lux liên tục 5 phút thì mở màn.
+- Ánh sáng trên 10000 lux liên tục 10 giây thì đóng màn; dưới 5000 lux liên tục 10 giây thì mở màn.
 
 ### Topic MQTT
 
@@ -90,7 +90,7 @@ Mỗi thiết bị dùng các topic `devices/<id>/...`, ví dụ `<id>` là `cha
 **config** (`soil_threshold` giới hạn 5–95; `lux_open` phải nhỏ hơn `lux_close`, nếu không thiết bị tự đặt bằng một nửa `lux_close`; gửi cấu hình cũng mở lại tưới tự động nếu đang `auto_blocked`):
 
 ```json
-{"soil_threshold":40,"lux_close":20000,"lux_open":10000}
+{"soil_threshold":40,"lux_close":10000,"lux_open":5000}
 ```
 
 ### Phân quyền broker

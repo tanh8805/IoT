@@ -65,5 +65,6 @@ Mỗi lần nạp bản mới, tăng `FW_VERSION` trong `config.h` (ví dụ `1.
 ## Lưu ý khi chạy
 
 - Logic tưới và che nắng chạy trên ESP32 nên mất mạng vẫn hoạt động; ngưỡng cấu hình được lưu trong flash.
+- Nếu backend đã gửi ngưỡng qua topic `config` thì giá trị lưu trong flash được ưu tiên hơn giá trị mặc định trong `config.h`. Đổi `config.h` rồi nạp lại không thay được ngưỡng đã lưu.
 - Lệnh có `cmd_id` trùng với lệnh vừa xử lý sẽ không thực hiện lại, thiết bị chỉ trả ack `"ok"` với `msg` là `"duplicate"`.
 - Sơ đồ nối dây ở `../hardware/README.md`.
