@@ -12,7 +12,7 @@ const int PIN_RELAY       = 14;
 const int PIN_LIGHT_POWER = 32;
 const int PIN_SDA         = 25;
 const int PIN_SCL         = 33;
-const int PIN_SERVO       = 13;
+const int PIN_SERVO       = 12;
 
 const int SOIL_DRY_RAW = 3800;
 const int SOIL_WET_RAW = 650;
