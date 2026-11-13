@@ -41,9 +41,20 @@ void publishAck(const char* cmdId, const char* result, const char* msg) {
   mqtt.publish(T_ACK.c_str(), (const uint8_t*)buf, n, false);
 }
 
+// cmd_id của lệnh vừa xử lý, để bỏ qua lệnh gửi lại do QoS 1 hoặc backend retry.
+String lastCmdId;
+
 void handleCmd(JsonDocument& doc) {
   const char* id     = doc["cmd_id"] | "";
   const char* action = doc["action"] | "";
+
+  if (id[0] != '\0') {
+    if (lastCmdId == id) {
+      publishAck(id, "ok", "duplicate");
+      return;
+    }
+    lastCmdId = id;
+  }
 
   if (strcmp(action, "pump_on") == 0) {
     int s = doc["duration_s"] | 5;
