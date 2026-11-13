@@ -5,6 +5,7 @@
 #include <Wire.h>
 #include <BH1750.h>
 BH1750 lightMeter;
+bool lightReady = false;
 #endif
 
 void sensorsBegin() {
@@ -14,9 +15,9 @@ void sensorsBegin() {
 #if HAS_LIGHT
   pinMode(PIN_LIGHT_POWER, OUTPUT);
   digitalWrite(PIN_LIGHT_POWER, HIGH);
-  delay(10);
+  delay(100);                           // BH1750 cần thời gian lên điện, chờ 10 ms thì begin() hay thất bại
   Wire.begin(PIN_SDA, PIN_SCL);
-  lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
+  lightReady = lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
 #endif
 }
 
@@ -39,6 +40,10 @@ int soilPercent(int raw) {
 
 float readLux() {
 #if HAS_LIGHT
+  if (!lightReady) {                    // chưa cấu hình được thì thử lại, để cắm lại dây là tự hồi phục
+    lightReady = lightMeter.begin(BH1750::CONTINUOUS_HIGH_RES_MODE);
+    if (!lightReady) return -1;
+  }
   float lux = lightMeter.readLightLevel();
   return lux < 0 ? -1 : lux;
 #else
