@@ -1,0 +1,13 @@
+# Bí mật
+**/secrets.h
+.env
+deployment/mosquitto/config/passwd
+
+# Dữ liệu chạy của Mosquitto
+deployment/mosquitto/data/
+deployment/mosquitto/log/
+
+# Khác
+__pycache__/
+.venv/
+.claude/
