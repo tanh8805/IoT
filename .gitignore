@@ -3,6 +3,14 @@
 .env
 deployment/mosquitto/config/passwd
 
+# Dynamic Security chứa hash mật khẩu MQTT; mật khẩu thật không bao giờ vào git
+**/dynamic-security.json
+deployment/mosquitto/legacy/passwd
+
+# Node
+node_modules/
+dist/
+
 # Dữ liệu chạy của Mosquitto
 deployment/mosquitto/data/
 deployment/mosquitto/log/
