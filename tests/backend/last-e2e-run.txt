@@ -1,0 +1,39 @@
+﻿
+> test
+> node --test --test-force-exit --test-timeout=60000 e2e.test.mjs
+
+▶ Xác thực
+  ✔ đăng nhập sai mật khẩu bị từ chối (401) (62.8092ms)
+  ✔ đăng nhập sai tên đăng nhập bị từ chối (401) (6.2256ms)
+  ✔ không có token bị từ chối (401) (2.8264ms)
+  ✔ token rác bị từ chối (401) (2.5242ms)
+  ✔ token ký bằng secret sai bị từ chối (401) (2.5129ms)
+  ✔ token hết hạn bị từ chối (401) (6.5267ms)
+✔ Xác thực (312.2167ms)
+▶ Phân quyền
+  ✔ viewer gửi lệnh bị 403 (4.809ms)
+  ✔ viewer đổi cấu hình bị 403 (4.1995ms)
+  ✔ viewer và operator không vào được API quản trị (403) (11.3274ms)
+  ✔ người dùng không được gán thiết bị thì không xem được (159.9812ms)
+✔ Phân quyền (180.6891ms)
+▶ Lệnh và cấu hình
+  ✔ operator gửi lệnh bơm và nhận ack ok từ thiết bị (520.3673ms)
+  ✔ duration_s ngoài 1–15 bị từ chối (400) (4.9384ms)
+  ✔ cấu hình lux_open >= lux_close bị từ chối (400) (7.1024ms)
+✔ Lệnh và cấu hình (532.6729ms)
+▶ Telemetry
+  ✔ telemetry sai định dạng bị từ chối và ghi log, không lưu (2555.1178ms)
+  ✔ API lịch sử telemetry lọc theo thời gian (5.9168ms)
+✔ Telemetry (2561.2097ms)
+▶ Vòng đời thiết bị
+  ✔ thiết bị bị Decommissioned không kết nối được broker (481.8656ms)
+  ✔ thiết bị đang bảo trì từ chối lệnh điều khiển (409) (26.4751ms)
+✔ Vòng đời thiết bị (508.5365ms)
+ℹ tests 17
+ℹ suites 5
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4225.4601

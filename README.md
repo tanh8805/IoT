@@ -104,9 +104,9 @@ Broker bắt buộc đăng nhập (`allow_anonymous false`). File `deployment/mo
 | Thư mục | Nội dung |
 |---|---|
 | `firmware/` | Firmware ESP32 (Arduino), thư viện và cách nạp |
-| `backend/` | API NestJS, xử lý telemetry, quản lý thiết bị (đang cập nhật) |
-| `frontend/` | Dashboard web (đang cập nhật) |
-| `database/` | Schema, migration PostgreSQL (đang cập nhật) |
+| `backend/` | API NestJS, xử lý telemetry, quản lý thiết bị |
+| `frontend/` | Dashboard web React |
+| `database/` | Schema, migration, seed PostgreSQL (Prisma) |
 | `deployment/` | Docker Compose và cấu hình Mosquitto |
 | `hardware/` | Linh kiện, sơ đồ nối dây, ảnh mạch |
 | `tests/` | Sketch kiểm tra phần cứng, script tích hợp MQTT, test bảo mật, kế hoạch kiểm thử |
@@ -154,7 +154,7 @@ Kế hoạch kiểm thử và kết quả đã chạy ở [tests/README.md](test
 
 ### 4.4 Backend và frontend
 
-Đang cập nhật.
+Xem [docs/du-phong.md](docs/du-phong.md): chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`, web ở cổng 8081.
 
 ## 5. Thư viện bên thứ ba
 

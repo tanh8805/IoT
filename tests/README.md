@@ -94,3 +94,31 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 - Bài F08 dùng bản tin cuối cùng làm mốc nên độ trễ có biên sai số 10 giây. Last Will của thiết bị giả cũng đã thử riêng bằng `kill -9`.
 - Cổng serial của máy đọc ra dữ liệu bị lặp và lẫn ký tự lạ (nghi cáp USB hoặc cổng), nên các số liệu ở trên lấy từ broker, không từ Serial; riêng F07 có dùng thêm dòng Serial `Man: DONG`.
 - Các bài để trống chưa được chạy (các bài cần backend, web, hoặc cần thao tác dài như NF03, NF06).
+
+## Kết quả test backend (bản dự phòng, chạy ngày 16/11/2026)
+
+Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới dựng từ volume trống (Windows 11, Docker Desktop, Mosquitto 2.1.2 + Dynamic Security, PostgreSQL 16, Node 22 trong container, thiết bị giả `chau-02`). Kết quả thật, 17/17 đạt, 0 lỗi. Toàn văn ở `backend/last-e2e-run.txt`.
+
+| Nhóm | Test | Kết quả |
+|---|---|---|
+| Xác thực | Đăng nhập sai mật khẩu → 401 | Đạt |
+| Xác thực | Đăng nhập sai tên đăng nhập → 401 | Đạt |
+| Xác thực | Không có token → 401 | Đạt |
+| Xác thực | Token rác → 401 | Đạt |
+| Xác thực | Token ký bằng secret sai → 401 | Đạt |
+| Xác thực | Token hết hạn → 401 (đối chứng: token đúng, còn hạn → 200) | Đạt |
+| Phân quyền | Viewer gửi lệnh → 403 | Đạt |
+| Phân quyền | Viewer đổi cấu hình → 403 | Đạt |
+| Phân quyền | Viewer/operator vào API quản trị → 403 | Đạt |
+| Phân quyền | User không được gán không xem được thiết bị (danh sách rỗng, chi tiết/telemetry 403); gán rồi xem được; khóa tài khoản thì token cũ bị 401 | Đạt |
+| Lệnh/cấu hình | Operator gửi `pump_on`, nhận ack `ok` từ thiết bị | Đạt |
+| Lệnh/cấu hình | `duration_s` ngoài 1–15 → từ chối | Đạt |
+| Lệnh/cấu hình | `lux_open >= lux_close` → 400 | Đạt |
+| Telemetry | 5 bản tin sai (soil_pct 150, soil_raw 9999, lux âm, sai kiểu, không phải JSON) bị từ chối, ghi vào `ingest-errors`, không lưu vào telemetry | Đạt |
+| Telemetry | API lịch sử lọc theo thời gian, `from` sai → 400 | Đạt |
+| Vòng đời | Thiết bị Decommissioned: kết nối đang mở bị ngắt, kết nối lại bị broker từ chối; REGISTERED chưa kết nối được; subscribe cmd của thiết bị khác bị từ chối | Đạt |
+| Vòng đời | Thiết bị bảo trì từ chối lệnh điều khiển → 409 | Đạt |
+
+Mười bước demo của đề: xem [docs/demo-checklist.md](../docs/demo-checklist.md) (11/11 mục đạt, gồm cả bước phụ 7b).
+
+Giới hạn: chưa thử với ESP32 `chau-01` thật trong bản dự phòng này (máy dựng bản này không có phần cứng và không có `secrets.h`); toàn bộ thử nghiệm dùng thiết bị giả `chau-02`. Các bài S07 ở bảng trên đã được tự động hóa bằng test "Decommissioned không kết nối được broker".

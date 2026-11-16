@@ -1,0 +1,13 @@
+﻿PASS  1. Đăng nhập các vai trò :: vai trò=ADMIN/OPERATOR/VIEWER; số thiết bị thấy được=3/2/2
+PASS  2. Kích hoạt thiết bị (Registered → Provisioned → Active) :: lịch sử: REGISTERED → PROVISIONED → ACTIVE; mật khẩu MQTT chỉ trả về một lần (cấp phát lần 2 = 409)
+PASS  3. Thiết bị gửi dữ liệu :: 3 bản ghi/30s từ chau-02; mới nhất soil=51% lux=17812.4
+PASS  4. Dashboard realtime (WebSocket) :: operator và viewer nhận telemetry realtime (chau-02, soil=51%); socket token sai bị ngắt
+PASS  5. Gửi lệnh và nhận ack :: pump_on=OK, curtain_close=OK, curtain_open=OK, pump_off=OK
+PASS  6. Đổi cấu hình :: config publish: {"soil_threshold":45,"lux_close":12000,"lux_open":6000}; lịch sử có 1 bản ghi (người đổi=operator); soil_threshold=99 bị 400
+PASS  7. Ngắt kết nối → offline :: OFFLINE qua Last Will (lý do: "Thiết bị báo offline (Last Will)"); cảnh báo DEVICE_OFFLINE #2 (CRITICAL); lệnh bị 409; chạy lại → ACTIVE, cảnh báo tự đóng
+PASS  7b. Quá 35 giây không có telemetry → offline (watchdog) :: OFFLINE sau 40s im lặng (lý do: "Quá 35 giây không có dữ liệu")
+PASS  8. Kích hoạt cảnh báo :: LOW_SOIL #5 (WARNING) và AUTO_BLOCKED #6 tạo đúng 1 bản dù gửi 2 lần; operator xác nhận → ACKNOWLEDGED lúc 2026-11-16T08:40:04.355Z; viewer xác nhận = 403
+PASS  9. Thao tác không có quyền bị chặn :: viewer gửi lệnh=403; viewer đổi cấu hình=403; operator tạo thiết bị=403; viewer xem người dùng=403; không token=401; audit ACCESS_DENIED có 5+ bản ghi
+PASS  10. Decommission → thiết bị không kết nối được :: kết nối đang mở bị ngắt; kết nối lại bị broker từ chối (Connection refused: Not authorized); lệnh điều khiển = 409
+
+Tổng: 11/11 bước đạt
