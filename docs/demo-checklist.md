@@ -1,6 +1,6 @@
 # Checklist 10 bước demo (bản dự phòng)
 
-Kết quả chạy thật ngày 16/11/2026 bằng `node tests/backend/demo-check.mjs` trên hệ thống dựng từ volume trống bằng `docker compose up -d`, thiết bị giả `chau-02` đang chạy. Toàn văn: `tests/backend/last-demo-run.txt`. Kết quả tự động: **11/11 mục đạt**.
+Kết quả chạy thật ngày 16/11/2026 (chạy lại sau khi thêm chức năng bổ sung, vẫn 11/11) bằng `node tests/backend/demo-check.mjs` trên hệ thống dựng từ volume trống bằng `docker compose up -d`, thiết bị giả `chau-02` đang chạy. Toàn văn: `tests/backend/last-demo-run.txt`. Kết quả tự động: **11/11 mục đạt**.
 
 Chưa kiểm với ESP32 `chau-01` thật (xem giới hạn cuối trang). Giao diện web đã mở thử bằng trình duyệt với tài khoản operator: trang chi tiết `chau-02` hiện số đo và biểu đồ cập nhật.
 
@@ -18,9 +18,26 @@ Chưa kiểm với ESP32 `chau-01` thật (xem giới hạn cuối trang). Giao 
 | 9 | Thao tác không có quyền bị chặn | Đạt | viewer gửi lệnh = 403; viewer đổi cấu hình = 403; operator tạo thiết bị = 403; viewer xem người dùng = 403; không token = 401; mỗi lần bị chặn ghi `ACCESS_DENIED` vào audit log |
 | 10 | Decommission → không kết nối được | Đạt | Kết nối đang mở bị broker ngắt; kết nối lại bị từ chối (`Connection refused: Not authorized`); lệnh điều khiển tới thiết bị thu hồi = 409 |
 
+## Chức năng bổ sung (17/11/2026)
+
+Chạy lại sau khi thêm các chức năng dưới đây trên stack dựng lại từ volume trống: `demo-check.mjs` vẫn **11/11 đạt** (không bị hồi quy) và `npm test` **30/30 đạt** (`tests/backend/last-e2e-run.txt`). Các mục này không nằm trong 10 bước demo của đề; bằng chứng là test e2e tương ứng (xem bảng trong `tests/README.md`).
+
+| # | Chức năng | Kết quả | Cách kiểm | Ghi chú |
+|---|---|---|---|---|
+| B1 | Đăng xuất, thu hồi token | Đạt | e2e | Token vào danh sách chặn (`jti`), websocket bị ngắt; phiên khác vẫn dùng được |
+| B2 | Đổi mật khẩu | Đạt | e2e | Mọi phiên cũ hết hiệu lực (`tokenVersion`); mật khẩu cũ không đăng nhập được |
+| B3 | Cập nhật thông tin cá nhân | Đạt | e2e + mở trang trên trình duyệt | Không tự đổi được vai trò |
+| B4 | Admin tạo, khóa, mở khóa tài khoản | Đạt | e2e | Khóa → token cũ 401, không đăng nhập được |
+| B5 | Phiên bản firmware (từ `fw`) và phần cứng (admin nhập), lịch sử đổi firmware | Đạt | e2e + xem trang chi tiết trên trình duyệt | Hiển thị ở trang chi tiết thiết bị |
+| B6 | Thống kê min/max/TB theo giờ và ngày, lọc khoảng thời gian | Đạt | e2e + xem bảng trên trình duyệt | Ranh giới giờ/ngày theo múi giờ `tz` |
+| B7 | Xuất CSV dữ liệu lịch sử | Đạt | e2e (API) | Chưa bấm nút tải trên giao diện |
+| B8 | HTTPS cho web (chứng chỉ tự ký, khóa không commit) | Đạt | e2e | Trình duyệt tích hợp từ chối chứng chỉ tự ký nên chưa xem giao diện qua HTTPS |
+| B9 | Đơn vị đo và quy tắc timestamp trong tài liệu | Có | README gốc, `docs/du-phong.md` | Khớp với `telemetry.validator.ts` |
+
 ## Cách chạy lại
 
 ```bash
+node deployment/scripts/gen-cert.mjs         # chứng chỉ HTTPS (một lần)
 cd deployment && docker compose up -d        # dựng hệ thống
 # chạy thiết bị giả chau-02 (xem docs/du-phong.md, mục 4)
 cd ../tests/backend && npm install && node demo-check.mjs

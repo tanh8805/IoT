@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './Layout';
 import { getStoredUser } from './api';
+import { AccountPage } from './pages/Account';
 import { AdminDevices, AdminUsers } from './pages/Admin';
 import { AlertsPage } from './pages/Alerts';
 import { AuditPage } from './pages/Audit';
@@ -27,6 +28,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route path="/" element={<DevicesPage />} />
           <Route path="/devices/:id" element={<DeviceDetail />} />
           <Route path="/alerts" element={<AlertsPage />} />
+          <Route path="/account" element={<AccountPage />} />
           <Route path="/admin/users" element={<Protected admin><AdminUsers /></Protected>} />
           <Route path="/admin/devices" element={<Protected admin><AdminDevices /></Protected>} />
           <Route path="/admin/audit" element={<Protected admin><AuditPage /></Protected>} />

@@ -112,7 +112,10 @@ export class BrokerAccountsService implements OnModuleInit {
     if (created.error) {
       if (!created.error.toLowerCase().includes('already exists')) throw new Error(`createClient: ${created.error}`);
       await this.dynsec.mustCommand('setClientPassword', { username: deviceId, password });
-      await this.dynsec.mustCommand('addClientRole', { username: deviceId, rolename: role }, ['already']);
+      // Mosquitto trả "Internal error" (không phải "already exists") khi client đã có role, nên kiểm tra trước.
+      const cur = await this.dynsec.mustCommand('getClient', { username: deviceId });
+      const has = ((cur.data as { client?: { roles?: { rolename: string }[] } })?.client?.roles || []).some((r) => r.rolename === role);
+      if (!has) await this.dynsec.mustCommand('addClientRole', { username: deviceId, rolename: role });
       await this.dynsec.mustCommand('enableClient', { username: deviceId });
     }
   }

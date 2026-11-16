@@ -73,10 +73,21 @@ export class IngestService implements OnModuleInit {
     const d = v.data;
 
     const row = await this.prisma.telemetry.create({ data: { deviceId: device.id, ...d } });
-    await this.prisma.device.update({
+    // Phiên bản firmware (trường fw) đổi so với lần trước: cập nhật và ghi lịch sử.
+    const fwChanged = !!d.fw && d.fw !== device.fwVersion;
+    const updatedDevice = await this.prisma.device.update({
       where: { id: device.id },
-      data: { lastSeenAt: new Date(), lastTelemetry: { ...row, ts: row.ts.toISOString(), receivedAt: row.receivedAt.toISOString() } },
+      data: {
+        lastSeenAt: new Date(),
+        lastTelemetry: { ...row, ts: row.ts.toISOString(), receivedAt: row.receivedAt.toISOString() },
+        ...(fwChanged ? { fwVersion: d.fw } : {}),
+      },
     });
+    if (fwChanged) {
+      await this.prisma.deviceFirmwareHistory.create({ data: { deviceId: device.id, from: device.fwVersion, to: d.fw! } });
+      this.logger.log(`${device.id}: firmware ${device.fwVersion ?? '(chưa biết)'} → ${d.fw}`);
+      this.realtime.emitDevice(device.id, 'device', updatedDevice);
+    }
     this.realtime.emitDevice(device.id, 'telemetry', row);
 
     // Đang bảo trì: vẫn lưu số đo nhưng không đổi trạng thái, không sinh cảnh báo.

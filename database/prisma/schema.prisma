@@ -58,9 +58,23 @@ model User {
   fullName     String
   role         Role
   active       Boolean  @default(true)
+  email        String?
+  phone        String?
+  // Phiên bản token: JWT mang số này (claim tv); tăng lên khi đổi/đặt lại mật khẩu thì mọi token cũ bị từ chối.
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
 
   devices DeviceAssignment[]
+}
+
+// Danh sách token bị chặn (đăng xuất). jti là mã duy nhất của JWT; xóa dòng khi token đã hết hạn.
+model RevokedToken {
+  jti       String   @id
+  userId    Int
+  expiresAt DateTime
+  revokedAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 // Mã thiết bị (chau-01...) cũng là tên đăng nhập MQTT và là phần <id> trong topic devices/<id>/...
@@ -74,8 +88,12 @@ model Device {
   soilThreshold Int         @default(40)
   luxClose      Float       @default(10000)
   luxOpen       Float       @default(5000)
+  // fwVersion lấy từ trường fw trong telemetry; hwVersion do admin nhập.
+  fwVersion     String?
+  hwVersion     String?
   createdAt     DateTime    @default(now())
 
+  firmwareHistory DeviceFirmwareHistory[]
   assignments  DeviceAssignment[]
   stateHistory DeviceStateHistory[]
   telemetry    Telemetry[]
@@ -102,6 +120,18 @@ model DeviceStateHistory {
   actor    String       @default("system")
   at       DateTime     @default(now())
   device   Device       @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@index([deviceId, at])
+}
+
+// Mỗi lần phiên bản firmware (fw) báo lên khác lần trước. from = null ở lần đầu thấy fw.
+model DeviceFirmwareHistory {
+  id       Int      @id @default(autoincrement())
+  deviceId String
+  from     String?
+  to       String
+  at       DateTime @default(now())
+  device   Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
 
   @@index([deviceId, at])
 }

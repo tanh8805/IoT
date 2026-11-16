@@ -97,7 +97,7 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 
 ## Kết quả test backend (bản dự phòng, chạy ngày 16/11/2026)
 
-Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới dựng từ volume trống (Windows 11, Docker Desktop, Mosquitto 2.1.2 + Dynamic Security, PostgreSQL 16, Node 22 trong container, thiết bị giả `chau-02`). Kết quả thật, 17/17 đạt, 0 lỗi. Toàn văn ở `backend/last-e2e-run.txt`.
+Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới dựng từ volume trống (Windows 11, Docker Desktop, Mosquitto 2.1.2 + Dynamic Security, PostgreSQL 16, Node 22 trong container, thiết bị giả `chau-02`, nginx HTTPS với chứng chỉ tự ký). Kết quả thật, **30/30 đạt, 0 lỗi** (17 test ở `e2e.test.mjs` và 13 test bổ sung ở `e2e-extra.test.mjs`). Toàn văn ở `backend/last-e2e-run.txt`.
 
 | Nhóm | Test | Kết quả |
 |---|---|---|
@@ -118,7 +118,21 @@ Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới d�
 | Telemetry | API lịch sử lọc theo thời gian, `from` sai → 400 | Đạt |
 | Vòng đời | Thiết bị Decommissioned: kết nối đang mở bị ngắt, kết nối lại bị broker từ chối; REGISTERED chưa kết nối được; subscribe cmd của thiết bị khác bị từ chối | Đạt |
 | Vòng đời | Thiết bị bảo trì từ chối lệnh điều khiển → 409 | Đạt |
+| Xác thực (bổ sung) | Token không có `jti` → 401 (không thu hồi được nên không chấp nhận) | Đạt |
+| Người dùng | Đăng xuất: token vào danh sách chặn (→ 401), websocket của phiên bị ngắt, kết nối websocket mới bằng token đó bị từ chối, phiên khác của cùng người vẫn dùng được | Đạt |
+| Người dùng | Đổi mật khẩu: sai mật khẩu cũ → 400, mới < 8 ký tự → 400, trùng cũ → 400; đổi xong token đang dùng và phiên khác → 401, mật khẩu cũ không đăng nhập được, đăng nhập lại ngay bằng mật khẩu mới được | Đạt |
+| Người dùng | Cập nhật thông tin cá nhân (tên, email, điện thoại); email/điện thoại sai → 400; gửi `role`/`active` không có hiệu lực; có trong audit | Đạt |
+| Người dùng | Admin tạo tài khoản kèm email/điện thoại; khóa → token cũ 401 và không đăng nhập được; mở khóa → đăng nhập lại được; audit `USER_CREATE`/`USER_LOCK`/`USER_UNLOCK` | Đạt |
+| Người dùng | Operator không tạo/khóa tài khoản (403); admin không tự khóa mình (400) | Đạt |
+| Thiết bị | Admin nhập/sửa `hwVersion`; operator sửa → 403; quá 32 ký tự → 400 | Đạt |
+| Thiết bị | `fw` trong telemetry lưu vào `fwVersion`; lịch sử đổi đúng `[null→1.0.0, 1.0.0→1.1.0]`, gửi lại cùng fw không ghi thêm | Đạt |
+| Dữ liệu | Thống kê theo giờ: số mẫu, min/max/trung bình độ ẩm và lux đúng với dữ liệu gửi vào; dữ liệu ngoài khoảng bị loại; theo ngày: tách đúng ngày, mẫu `lux = null` không tính vào lux; tham số sai → 400; viewer không được gán → 403 | Đạt |
+| Dữ liệu | Xuất CSV: header đúng, 7 dòng cho khoảng 5 ngày và 5 dòng cho 1 giờ, sắp xếp tăng dần; `from` sai → 400; không quyền → 403; không token → 401; có audit `DATA_EXPORT` | Đạt |
+| HTTPS | Web phục vụ TLS 1.2/1.3 bằng chứng chỉ tự ký (SAN có `localhost`), proxy `/api`; máy khách bắt buộc xác minh thì từ chối chứng chỉ | Đạt |
+| HTTPS | Cổng 8081 chuyển 301 sang `https://localhost:8443` giữ nguyên đường dẫn; socket.io chạy được trên wss | Đạt |
 
 Mười bước demo của đề: xem [docs/demo-checklist.md](../docs/demo-checklist.md) (11/11 mục đạt, gồm cả bước phụ 7b).
+
+Giao diện: các trang mới (chi tiết thiết bị có phiên bản firmware, bảng thống kê, nút Xuất CSV; trang Tài khoản) được mở thử bằng trình duyệt qua Vite dev server (HTTP) và hiển thị đúng dữ liệu; chưa mở được qua HTTPS trong trình duyệt tích hợp vì nó từ chối chứng chỉ tự ký (HTTPS được kiểm bằng test ở trên). Chưa bấm thử từng nút đổi mật khẩu/xuất CSV trên giao diện, phần đó kiểm bằng API.
 
 Giới hạn: chưa thử với ESP32 `chau-01` thật trong bản dự phòng này (máy dựng bản này không có phần cứng và không có `secrets.h`); toàn bộ thử nghiệm dùng thiết bị giả `chau-02`. Các bài S07 ở bảng trên đã được tự động hóa bằng test "Decommissioned không kết nối được broker".

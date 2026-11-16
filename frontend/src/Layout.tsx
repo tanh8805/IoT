@@ -1,12 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { ROLE_LABEL, clearSession, closeSocket, getStoredUser } from './api';
+import { ROLE_LABEL, getStoredUser, logout } from './api';
 
 export function Layout() {
   const user = getStoredUser()!;
   const nav = useNavigate();
-  const logout = () => {
-    closeSocket();
-    clearSession();
+  const onLogout = async () => {
+    await logout();
     nav('/login');
   };
   return (
@@ -25,8 +24,8 @@ export function Layout() {
           )}
         </nav>
         <div className="who">
-          <span>{user.fullName} · <b>{ROLE_LABEL[user.role]}</b></span>
-          <button className="btn small" onClick={logout}>Đăng xuất</button>
+          <NavLink to="/account" className="whoname">{user.fullName} · <b>{ROLE_LABEL[user.role]}</b></NavLink>
+          <button className="btn small" onClick={onLogout}>Đăng xuất</button>
         </div>
       </header>
       <main><Outlet /></main>

@@ -7,6 +7,12 @@ deployment/mosquitto/config/passwd
 **/dynamic-security.json
 deployment/mosquitto/legacy/passwd
 
+# Chứng chỉ HTTPS tự ký và khóa riêng: tạo cục bộ bằng deployment/scripts/gen-cert.mjs, không commit
+deployment/certs/*
+!deployment/certs/.gitkeep
+*.key
+*.pem
+
 # Node
 node_modules/
 dist/

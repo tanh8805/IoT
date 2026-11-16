@@ -7,7 +7,9 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { after, before, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import https from 'node:https';
 import mqtt from 'mqtt';
+import { io } from 'socket.io-client';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const env = Object.fromEntries(
@@ -95,8 +97,10 @@ describe('Xác thực', () => {
     const now = Math.floor(Date.now() / 1000);
     const expired = signJwt({ sub: 1, username: 'admin', role: 'ADMIN', iat: now - 7200, exp: now - 3600 }, env.JWT_SECRET);
     assert.equal((await http('GET', '/devices', expired)).status, 401);
-    const valid = signJwt({ sub: 1, username: 'admin', role: 'ADMIN', iat: now, exp: now + 3600 }, env.JWT_SECRET);
-    assert.equal((await http('GET', '/devices', valid)).status, 200, 'đối chứng: token đúng secret, còn hạn phải được chấp nhận');
+    const valid = signJwt({ sub: 1, username: 'admin', role: 'ADMIN', iat: now, exp: now + 3600, jti: randomBytes(8).toString('hex'), tv: 0 }, env.JWT_SECRET);
+    assert.equal((await http('GET', '/devices', valid)).status, 200, 'đối chứng: token đúng secret, còn hạn, có jti phải được chấp nhận');
+    const noJti = signJwt({ sub: 1, username: 'admin', role: 'ADMIN', iat: now, exp: now + 3600 }, env.JWT_SECRET);
+    assert.equal((await http('GET', '/devices', noJti)).status, 401, 'token không có jti (không thu hồi được) bị từ chối');
   });
 });
 

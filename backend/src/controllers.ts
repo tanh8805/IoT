@@ -1,14 +1,14 @@
-import { Body, Controller, Get, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req, Res } from '@nestjs/common';
 import { AlertStatus } from '@prisma/client';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { AlertsService } from './alerts/alerts.service';
 import { AuditService } from './audit/audit.service';
-import { AuthService } from './auth/auth.service';
-import { AuthUser, CurrentUser, Public, Roles } from './common/auth.types';
+import { AuthService, TokenPayload } from './auth/auth.service';
+import { AuthUser, CurrentToken, CurrentUser, Public, Roles } from './common/auth.types';
 import { CommandsService } from './commands/commands.service';
 import { ConfigService } from './commands/config.service';
 import { DevicesService } from './devices/devices.service';
-import { AssignDevicesDto, CommandDto, ConfigDto, CreateDeviceDto, CreateUserDto, LoginDto, MaintenanceDto, UpdateDeviceDto, UpdateUserDto } from './dto';
+import { AssignDevicesDto, ChangePasswordDto, UpdateProfileDto, CommandDto, ConfigDto, CreateDeviceDto, CreateUserDto, LoginDto, MaintenanceDto, UpdateDeviceDto, UpdateUserDto } from './dto';
 import { PrismaService } from './prisma/prisma.service';
 import { UsersService } from './users/users.service';
 
@@ -25,7 +25,24 @@ export class AuthController {
 
   @Get('me')
   me(@CurrentUser() user: AuthUser) {
-    return user;
+    return this.auth.me(user.id);
+  }
+
+  @Patch('me')
+  updateMe(@CurrentUser() user: AuthUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
+    return this.auth.updateProfile(user.id, dto, req.ip);
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  logout(@CurrentUser() user: AuthUser, @CurrentToken() token: TokenPayload, @Req() req: Request) {
+    return this.auth.logout(user.id, user.username, token, req.ip);
+  }
+
+  @Post('change-password')
+  @HttpCode(200)
+  changePassword(@CurrentUser() user: AuthUser, @CurrentToken() token: TokenPayload, @Body() dto: ChangePasswordDto, @Req() req: Request) {
+    return this.auth.changePassword(user.id, dto.currentPassword, dto.newPassword, token, req.ip);
   }
 }
 
@@ -64,6 +81,18 @@ export class DevicesController {
   }
   @Get(':id/telemetry') telemetry(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('from') from?: string, @Query('to') to?: string, @Query('limit') limit?: string) {
     return this.devices.telemetry(u, id, { from, to, limit: limit ? Number(limit) : undefined });
+  }
+  @Get(':id/stats') stats(@CurrentUser() u: AuthUser, @Param('id') id: string, @Query('granularity') granularity?: string, @Query('from') from?: string, @Query('to') to?: string, @Query('tz') tz?: string) {
+    return this.devices.stats(u, id, { granularity, from, to, tz });
+  }
+  @Get(':id/telemetry/export') @Header('Content-Type', 'text/csv; charset=utf-8')
+  async exportCsv(@CurrentUser() u: AuthUser, @Param('id') id: string, @Res({ passthrough: true }) res: Response, @Req() req: Request, @Query('from') from?: string, @Query('to') to?: string) {
+    const csv = await this.devices.exportCsv(u, id, { from, to }, req.ip);
+    res.setHeader('Content-Disposition', `attachment; filename="telemetry-${id.replace(/[^a-z0-9-]/g, '')}.csv"`);
+    return csv;
+  }
+  @Get(':id/firmware-history') firmwareHistory(@CurrentUser() u: AuthUser, @Param('id') id: string) {
+    return this.devices.firmwareHistory(u, id);
   }
   @Get(':id/state-history') stateHistory(@CurrentUser() u: AuthUser, @Param('id') id: string) {
     return this.devices.stateHistory(u, id);

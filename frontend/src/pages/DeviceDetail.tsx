@@ -1,7 +1,7 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, ReferenceLine } from 'recharts';
-import { ACTION_LABEL, Alert, ALERT_TYPE_LABEL, Command, ConfigChange, Device, StateHistory, Telemetry, api, canControl, fmtTime, getSocket, getStoredUser } from '../api';
+import { ACTION_LABEL, Alert, ALERT_TYPE_LABEL, Command, ConfigChange, Device, FirmwareChange, StateHistory, StatsResult, Telemetry, api, canControl, downloadCsv, fmtTime, getSocket, getStoredUser } from '../api';
 import { Msg, StateBadge, StatusBadge } from '../components';
 
 const RANGES = [
@@ -11,7 +11,11 @@ const RANGES = [
   { label: '24 giờ', ms: 24 * 60 * 60_000 },
 ];
 
-const hhmm = (s: string) => new Date(s).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+/** Giá trị cho <input type="datetime-local"> theo giờ địa phương. */
+const toLocalInput = (d: Date) => new Date(d.getTime() - d.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+
+const hhmm =(s: string) => new Date(s).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 export function DeviceDetail() {
   const { id = '' } = useParams();
@@ -28,6 +32,23 @@ export function DeviceDetail() {
   const [duration, setDuration] = useState(5);
   const [cfg, setCfg] = useState({ soil_threshold: 40, lux_close: 10000, lux_open: 5000 });
 
+  const [fwLog, setFwLog] = useState<FirmwareChange[]>([]);
+  const [gran, setGran] = useState<'hour' | 'day'>('hour');
+  const [sFrom, setSFrom] = useState(() => toLocalInput(new Date(Date.now() - 24 * 3600_000)));
+  const [sTo, setSTo] = useState(() => toLocalInput(new Date()));
+  const [stats, setStats] = useState<StatsResult | null>(null);
+
+  const loadStats = useCallback(() => {
+    const q = new URLSearchParams({ granularity: gran, tz: TZ, from: new Date(sFrom).toISOString(), to: new Date(sTo).toISOString() });
+    api<StatsResult>(`/devices/${id}/stats?${q}`).then((r) => { setStats(r); setError(''); }).catch((e) => setError(e.message));
+  }, [id, gran, sFrom, sTo]);
+  useEffect(loadStats, [loadStats]);
+
+  const exportCsv = () => {
+    const q = new URLSearchParams({ from: new Date(sFrom).toISOString(), to: new Date(sTo).toISOString() });
+    downloadCsv(`/devices/${id}/telemetry/export?${q}`, `telemetry-${id}.csv`).catch((e) => setError(e.message));
+  };
+
   const loadSeries = useCallback(() => {
     const from = new Date(Date.now() - range).toISOString();
     api<Telemetry[]>(`/devices/${id}/telemetry?from=${encodeURIComponent(from)}&limit=2000`).then(setSeries).catch((e) => setError(e.message));
@@ -42,6 +63,7 @@ export function DeviceDetail() {
     api<Alert[]>(`/alerts?deviceId=${id}`).then(setAlerts).catch(() => undefined);
     api<StateHistory[]>(`/devices/${id}/state-history`).then(setHistory).catch(() => undefined);
     api<ConfigChange[]>(`/devices/${id}/config-history`).then(setCfgLog).catch(() => undefined);
+    api<FirmwareChange[]>(`/devices/${id}/firmware-history`).then(setFwLog).catch(() => undefined);
   }, [id]);
 
   useEffect(loadAll, [loadAll]);
@@ -58,6 +80,7 @@ export function DeviceDetail() {
       if (d.id !== id) return;
       setDevice((cur) => (cur ? { ...cur, ...d } : d));
       api<StateHistory[]>(`/devices/${id}/state-history`).then(setHistory).catch(() => undefined);
+      api<FirmwareChange[]>(`/devices/${id}/firmware-history`).then(setFwLog).catch(() => undefined);
     };
     const onCommand = (c: Command) => {
       if (c.deviceId !== id) return;
@@ -168,6 +191,64 @@ export function DeviceDetail() {
             </ResponsiveContainer>
           </div>
         </div>
+      </div>
+
+      <div className="two">
+        <div className="card">
+          <b>Phiên bản</b>
+          <table>
+            <tbody>
+              <tr><td>Firmware (báo qua telemetry)</td><td>{device.fwVersion || '—'}</td></tr>
+              <tr><td>Phần cứng (admin nhập)</td><td>{device.hwVersion || '—'}</td></tr>
+            </tbody>
+          </table>
+          <small className="muted">Lịch sử đổi firmware</small>
+          <table>
+            <thead><tr><th>Thời gian</th><th>Từ</th><th>Thành</th></tr></thead>
+            <tbody>
+              {fwLog.slice(0, 10).map((f) => (
+                <tr key={f.id}><td>{fmtTime(f.at)}</td><td>{f.from || '(lần đầu thấy)'}</td><td>{f.to}</td></tr>
+              ))}
+              {fwLog.length === 0 && <tr><td colSpan={3} className="muted">Chưa nhận được phiên bản firmware.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        <div className="card">
+          <b>Thống kê độ ẩm đất và ánh sáng</b>
+          <div className="row gap wrap end">
+            <label>Theo
+              <select value={gran} onChange={(e) => setGran(e.target.value as 'hour' | 'day')}>
+                <option value="hour">Giờ</option>
+                <option value="day">Ngày</option>
+              </select>
+            </label>
+            <label>Từ<input type="datetime-local" value={sFrom} onChange={(e) => setSFrom(e.target.value)} /></label>
+            <label>Đến<input type="datetime-local" value={sTo} onChange={(e) => setSTo(e.target.value)} /></label>
+            <button className="btn small" onClick={loadStats}>Xem</button>
+            <button className="btn small" onClick={exportCsv}>Xuất CSV</button>
+          </div>
+          <small className="muted">Độ ẩm đất đơn vị %, ánh sáng đơn vị lux (lx); giờ/ngày tính theo múi giờ trình duyệt ({TZ}). Xuất CSV theo khoảng Từ–Đến (giờ UTC trong file).</small>
+        </div>
+      </div>
+
+      <div className="card">
+        <b>Bảng thống kê theo {gran === 'hour' ? 'giờ' : 'ngày'}</b>
+        <table>
+          <thead>
+            <tr><th>Bắt đầu</th><th>Số mẫu</th><th>Ẩm min (%)</th><th>Ẩm max (%)</th><th>Ẩm TB (%)</th><th>Lux min</th><th>Lux max</th><th>Lux TB</th></tr>
+          </thead>
+          <tbody>
+            {stats?.buckets.map((b) => (
+              <tr key={b.start}>
+                <td>{gran === 'day' ? new Date(b.start).toLocaleDateString('vi-VN') : fmtTime(b.start)}</td>
+                <td>{b.samples}</td>
+                <td>{b.soil.min}</td><td>{b.soil.max}</td><td>{b.soil.avg}</td>
+                <td>{b.lux.min ?? '—'}</td><td>{b.lux.max ?? '—'}</td><td>{b.lux.avg ?? '—'}</td>
+              </tr>
+            ))}
+            {(!stats || stats.buckets.length === 0) && <tr><td colSpan={8} className="muted">Không có dữ liệu trong khoảng đã chọn.</td></tr>}
+          </tbody>
+        </table>
       </div>
 
       {canControl(user.role) && (

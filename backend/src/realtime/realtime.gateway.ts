@@ -23,9 +23,14 @@ export class RealtimeGateway implements OnGatewayConnection {
     try {
       const token = (client.handshake.auth as { token?: string })?.token;
       if (!token) throw new Error('thiếu token');
-      const payload = await this.jwt.verifyAsync<{ sub: number }>(token, { algorithms: ['HS256'] });
+      const payload = await this.jwt.verifyAsync<{ sub: number; jti?: string; tv?: number }>(token, { algorithms: ['HS256'] });
+      if (!payload.jti) throw new Error('token không hợp lệ');
+      if (await this.prisma.revokedToken.findUnique({ where: { jti: payload.jti } })) throw new Error('token đã bị thu hồi');
       const user = await this.prisma.user.findUnique({ where: { id: Number(payload.sub) } });
       if (!user || !user.active) throw new Error('tài khoản không hợp lệ');
+      if (payload.tv !== user.tokenVersion) throw new Error('phiên đã hết hiệu lực');
+      client.data.userId = user.id;
+      client.data.jti = payload.jti;
       if (user.role === 'ADMIN') {
         client.join('role:admin');
       } else {
@@ -36,6 +41,14 @@ export class RealtimeGateway implements OnGatewayConnection {
       this.logger.warn(`Từ chối kết nối websocket: ${(e as Error).message}`);
       client.emit('error', 'unauthorized');
       client.disconnect(true);
+    }
+  }
+
+  /** Ngắt websocket của người dùng (một phiên theo jti, hoặc tất cả khi bị khóa/đổi mật khẩu). */
+  async disconnectUser(userId: number, jti?: string) {
+    const sockets = (await this.server?.fetchSockets()) ?? [];
+    for (const s of sockets) {
+      if (s.data.userId === userId && (!jti || s.data.jti === jti)) s.disconnect(true);
     }
   }
 

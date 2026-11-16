@@ -5,6 +5,7 @@ Test e2e chạy trên hệ thống thật đang chạy bằng `docker compose` (
 | File | Nội dung |
 |---|---|
 | `e2e.test.mjs` | 17 test (Node `node:test`): đăng nhập sai, token sai/hết hạn, phân quyền 403, user không được gán, telemetry sai định dạng, lệnh/ack, cấu hình, Decommissioned không kết nối được broker |
+| `e2e-extra.test.mjs` | 13 test bổ sung: đăng xuất/đổi mật khẩu/hồ sơ/khóa tài khoản, firmware và phần cứng, thống kê giờ/ngày, xuất CSV, HTTPS (cần đã chạy `node deployment/scripts/gen-cert.mjs`) |
 | `demo-check.mjs` | Chạy tự động 10 bước demo của đề, in PASS/FAIL từng bước (khoảng 2 phút) |
 | `last-e2e-run.txt` | Kết quả thật của lần chạy `npm test` gần nhất |
 | `last-demo-run.txt` | Kết quả thật của lần chạy `demo-check.mjs` gần nhất |
@@ -16,7 +17,7 @@ Cần: `.env` ở gốc repo, stack đang chạy, và thiết bị giả `chau-0
 ```bash
 cd tests/backend
 npm install
-npm test                  # 17 test e2e
+npm test                  # 30 test e2e (e2e.test.mjs + e2e-extra.test.mjs)
 node demo-check.mjs       # 10 bước demo (dừng/chạy lại container sw-dp-fake-device)
 ```
 
@@ -29,4 +30,4 @@ docker run -d --name sw-dp-fake-device --network smart-watering-dp_default \
   sh -c "pip install -q -r requirements.txt && python -u fake_device.py --interval 10"
 ```
 
-Biến môi trường tùy chọn: `API_URL` (mặc định `http://localhost:3001/api`), `MQTT_URL` (mặc định `mqtt://localhost:1884`).
+Biến môi trường tùy chọn: `API_URL` (mặc định `http://localhost:3001/api`), `WEB_HTTPS` (mặc định `https://localhost:8443`), `MQTT_URL` (mặc định `mqtt://localhost:1884`).

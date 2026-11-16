@@ -73,6 +73,25 @@ Mỗi thiết bị dùng các topic `devices/<id>/...`, ví dụ `<id>` là `cha
 {"ts":1794534238,"soil_raw":2412,"soil_pct":44,"lux":12366.6,"pump":false,"curtain":"open","auto_blocked":false,"fw":"1.0.0"}
 ```
 
+**Đơn vị đo:**
+
+| Trường | Đơn vị / khoảng | Ghi chú |
+|---|---|---|
+| `soil_raw` | giá trị ADC 12 bit, 0–4095, không có đơn vị | Càng cao càng khô (khô ~3800, ướt ~650) |
+| `soil_pct` | phần trăm (%), số nguyên 0–100 | Độ ẩm đất quy đổi từ `soil_raw` |
+| `lux` | lux (lx), số thực ≥ 0, cảm biến BH1750 đo tới 65535 | `null` khi chưa lắp hoặc không đọc được cảm biến |
+| `pump` | boolean | `true` khi bơm đang chạy |
+| `curtain` | `"open"`, `"closed"` hoặc `null` | `null` khi chưa lắp servo |
+| `duration_s` (lệnh) | giây, 1–15 | Thời gian chạy bơm |
+| `soil_threshold` (config) | phần trăm (%), 5–95 | Tưới khi độ ẩm dưới ngưỡng |
+| `lux_close`, `lux_open` (config) | lux (lx) | `lux_open` < `lux_close` |
+
+**Quy tắc timestamp `ts`:**
+- `ts` là giờ UNIX tính bằng **giây** (UTC) do thiết bị lấy từ NTP, ví dụ `1794534238`. Không có múi giờ trong số này; múi giờ chỉ áp dụng khi hiển thị.
+- Thiết bị chưa đồng bộ được giờ thì gửi `ts: null` (firmware coi giờ nhỏ hơn `1700000000` là chưa có giờ).
+- Backend dùng `ts` của thiết bị làm thời điểm đo. Nếu `ts` là `null`, thiếu, nhỏ hơn `1600000000` (đồng hồ chưa chỉnh) hoặc lệch quá 24 giờ về phía tương lai thì dùng **giờ server lúc nhận**. Số nguyên không hợp lệ về kiểu (chuỗi, số thực) thì bản tin bị từ chối.
+- Backend luôn ghi thêm `receivedAt` (giờ server lúc nhận) bên cạnh `ts`. Lưu trong PostgreSQL và xuất CSV đều là UTC (ISO 8601, hậu tố `Z`).
+
 **cmd** (`action`: `pump_on`, `pump_off`, `curtain_open`, `curtain_close`; `duration_s` chỉ dùng cho `pump_on`, từ 1 đến 15 giây, mặc định 5):
 
 ```json
@@ -154,7 +173,7 @@ Kế hoạch kiểm thử và kết quả đã chạy ở [tests/README.md](test
 
 ### 4.4 Backend và frontend
 
-Xem [docs/du-phong.md](docs/du-phong.md): chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`, web ở cổng 8081.
+Xem [docs/du-phong.md](docs/du-phong.md): tạo chứng chỉ HTTPS tự ký một lần bằng `node deployment/scripts/gen-cert.mjs`, rồi chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`. Web chạy HTTPS ở https://localhost:8443 (cổng 8081 tự chuyển sang đó).
 
 ## 5. Thư viện bên thứ ba
 

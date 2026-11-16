@@ -4,13 +4,16 @@ import * as bcrypt from 'bcryptjs';
 import { AuditService } from '../audit/audit.service';
 import { AuthUser } from '../common/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
+import { RealtimeGateway } from '../realtime/realtime.gateway';
 
-const publicUser = (u: { id: number; username: string; fullName: string; role: Role; active: boolean; createdAt: Date; devices?: { deviceId: string }[] }) => ({
+const publicUser = (u: { id: number; username: string; fullName: string; role: Role; active: boolean; email?: string | null; phone?: string | null; createdAt: Date; devices?: { deviceId: string }[] }) => ({
   id: u.id,
   username: u.username,
   fullName: u.fullName,
   role: u.role,
   active: u.active,
+  email: u.email ?? null,
+  phone: u.phone ?? null,
   createdAt: u.createdAt,
   deviceIds: (u.devices || []).map((d) => d.deviceId),
 });
@@ -20,6 +23,7 @@ export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly realtime: RealtimeGateway,
   ) {}
 
   async list() {
@@ -27,16 +31,23 @@ export class UsersService {
     return users.map(publicUser);
   }
 
-  async create(actor: AuthUser, dto: { username: string; password: string; fullName: string; role: Role }, ip?: string) {
+  async create(actor: AuthUser, dto: { username: string; password: string; fullName: string; role: Role; email?: string; phone?: string }, ip?: string) {
     if (await this.prisma.user.findUnique({ where: { username: dto.username } })) throw new ConflictException('Tên đăng nhập đã tồn tại');
     const user = await this.prisma.user.create({
-      data: { username: dto.username, fullName: dto.fullName, role: dto.role, passwordHash: await bcrypt.hash(dto.password, 10) },
+      data: {
+        username: dto.username,
+        fullName: dto.fullName,
+        role: dto.role,
+        email: dto.email || null,
+        phone: dto.phone || null,
+        passwordHash: await bcrypt.hash(dto.password, 10),
+      },
     });
     await this.audit.log({ userId: actor.id, username: actor.username, action: 'USER_CREATE', target: `user:${user.username}`, detail: { role: dto.role }, ip });
     return publicUser(user);
   }
 
-  async update(actor: AuthUser, id: number, dto: { fullName?: string; role?: Role; active?: boolean; password?: string }, ip?: string) {
+  async update(actor: AuthUser, id: number, dto: { fullName?: string; role?: Role; active?: boolean; password?: string; email?: string; phone?: string }, ip?: string) {
     const user = await this.prisma.user.findUnique({ where: { id } });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     if (id === actor.id && (dto.active === false || (dto.role && dto.role !== 'ADMIN'))) {
@@ -48,9 +59,15 @@ export class UsersService {
         fullName: dto.fullName,
         role: dto.role,
         active: dto.active,
+        email: dto.email === undefined ? undefined : dto.email || null,
+        phone: dto.phone === undefined ? undefined : dto.phone || null,
         passwordHash: dto.password ? await bcrypt.hash(dto.password, 10) : undefined,
+        // Admin đặt lại mật khẩu: phiên cũ của người đó hết hiệu lực.
+        tokenVersion: dto.password ? { increment: 1 } : undefined,
       },
     });
+    // Khóa tài khoản hoặc đặt lại mật khẩu: ngắt luôn websocket đang mở.
+    if (dto.active === false || dto.password) await this.realtime.disconnectUser(id);
     const action = dto.active === false ? 'USER_LOCK' : dto.active === true && !user.active ? 'USER_UNLOCK' : 'USER_UPDATE';
     await this.audit.log({
       userId: actor.id,

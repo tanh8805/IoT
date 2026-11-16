@@ -1,9 +1,8 @@
 import { CanActivate, createParamDecorator, ExecutionContext, ForbiddenException, Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtService } from '@nestjs/jwt';
 import { Role } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { AuthService, TokenPayload } from '../auth/auth.service';
 
 export interface AuthUser {
   id: number;
@@ -21,13 +20,16 @@ export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionConte
   return ctx.switchToHttp().getRequest().user;
 });
 
-/** Xác thực JWT; kiểm tra lại người dùng trong DB để khóa tài khoản có hiệu lực ngay. */
+export const CurrentToken = createParamDecorator((_: unknown, ctx: ExecutionContext): TokenPayload => {
+  return ctx.switchToHttp().getRequest().tokenPayload;
+});
+
+/** Xác thực JWT; kiểm tra token bị chặn và người dùng trong DB để khóa tài khoản có hiệu lực ngay. */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly jwt: JwtService,
-    private readonly prisma: PrismaService,
+    private readonly auth: AuthService,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -35,15 +37,9 @@ export class JwtAuthGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest();
     const header: string | undefined = req.headers['authorization'];
     if (!header || !header.startsWith('Bearer ')) throw new UnauthorizedException('Thiếu token đăng nhập');
-    let payload: { sub: number };
-    try {
-      payload = await this.jwt.verifyAsync(header.slice(7), { algorithms: ['HS256'] });
-    } catch {
-      throw new UnauthorizedException('Token không hợp lệ hoặc đã hết hạn');
-    }
-    const user = await this.prisma.user.findUnique({ where: { id: Number(payload.sub) } });
-    if (!user || !user.active) throw new UnauthorizedException('Tài khoản không tồn tại hoặc đã bị khóa');
+    const { user, payload } = await this.auth.authenticate(header.slice(7));
     req.user = { id: user.id, username: user.username, role: user.role } as AuthUser;
+    req.tokenPayload = payload;
     return true;
   }
 }

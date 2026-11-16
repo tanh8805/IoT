@@ -3,9 +3,17 @@ import { io, Socket } from 'socket.io-client';
 export type Role = 'ADMIN' | 'OPERATOR' | 'VIEWER';
 export type DeviceState = 'REGISTERED' | 'PROVISIONED' | 'ACTIVE' | 'OFFLINE' | 'FAULT' | 'MAINTENANCE' | 'DECOMMISSIONED';
 
-export interface User { id: number; username: string; fullName: string; role: Role; active?: boolean; deviceIds?: string[] }
+export interface User { id: number; username: string; fullName: string; role: Role; active?: boolean; deviceIds?: string[]; email?: string | null; phone?: string | null }
+export interface FirmwareChange { id: number; from: string | null; to: string; at: string }
+export interface StatBucket {
+  start: string;
+  samples: number;
+  soil: { min: number; max: number; avg: number };
+  lux: { min: number | null; max: number | null; avg: number | null; samples: number };
+}
+export interface StatsResult { granularity: 'hour' | 'day'; tz: string; units: { soil: string; lux: string }; buckets: StatBucket[] }
 export interface Telemetry { id?: number; deviceId: string; ts: string; soilRaw: number; soilPct: number; lux: number | null; pump: boolean; curtain: string | null; autoBlocked: boolean; fw: string | null }
-export interface Device { id: string; name: string; location: string; state: DeviceState; lastSeenAt: string | null; lastTelemetry: Telemetry | null; soilThreshold: number; luxClose: number; luxOpen: number }
+export interface Device { id: string; name: string; location: string; state: DeviceState; lastSeenAt: string | null; lastTelemetry: Telemetry | null; soilThreshold: number; luxClose: number; luxOpen: number; fwVersion?: string | null; hwVersion?: string | null }
 export interface Command { id: string; deviceId: string; action: string; durationS: number | null; status: 'PENDING' | 'OK' | 'ERROR' | 'TIMEOUT'; msg: string; username: string; createdAt: string; ackedAt: string | null }
 export interface Alert { id: number; deviceId: string; type: string; severity: 'INFO' | 'WARNING' | 'CRITICAL'; status: 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED'; message: string; createdAt: string; ackedByName: string | null; ackedAt: string | null; resolvedAt: string | null }
 export interface AuditLog { id: number; at: string; username: string; action: string; target: string | null; detail: unknown; ip: string | null }
@@ -49,6 +57,33 @@ export async function api<T = unknown>(path: string, method = 'GET', body?: unkn
     throw new Error(msg);
   }
   return data as T;
+}
+
+/** Tải file CSV (cần kèm token nên không dùng thẻ <a> thường). */
+export async function downloadCsv(path: string, fallbackName: string) {
+  const res = await fetch(`/api${path}`, { headers: { Authorization: `Bearer ${getToken()}` } });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.message || `Lỗi ${res.status}`);
+  }
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || fallbackName;
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/** Đăng xuất: báo backend thu hồi token (bỏ qua lỗi mạng), rồi xóa phiên cục bộ. */
+export async function logout() {
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` } });
+  } catch {
+    /* vẫn đăng xuất cục bộ */
+  }
+  closeSocket();
+  clearSession();
 }
 
 let socket: Socket | null = null;

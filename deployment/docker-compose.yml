@@ -66,7 +66,10 @@ services:
       context: ../frontend
     container_name: sw-dp-frontend
     ports:
-      - "8081:80"
+      - "8443:443"   # HTTPS (chính)
+      - "8081:80"    # tự chuyển sang https://...:8443
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
     depends_on:
       - backend
     restart: unless-stopped

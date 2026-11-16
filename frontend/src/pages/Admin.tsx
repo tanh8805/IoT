@@ -5,7 +5,7 @@ import { Msg, StateBadge } from '../components';
 
 export function AdminDevices() {
   const [devices, setDevices] = useState<Device[]>([]);
-  const [form, setForm] = useState({ id: '', name: '', location: '' });
+  const [form, setForm] = useState({ id: '', name: '', location: '', hwVersion: '' });
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [secret, setSecret] = useState<{ deviceId: string; mqttUsername: string; mqttPassword: string } | null>(null);
@@ -31,7 +31,7 @@ export function AdminDevices() {
     e.preventDefault();
     run(async () => {
       await api('/devices', 'POST', form);
-      setForm({ id: '', name: '', location: '' });
+      setForm({ id: '', name: '', location: '', hwVersion: '' });
     }, 'Đã đăng ký thiết bị (trạng thái Đã đăng ký). Bấm "Cấp phát" để tạo tài khoản MQTT.');
   };
 
@@ -63,11 +63,12 @@ export function AdminDevices() {
         <label>Mã thiết bị<input placeholder="chau-03" value={form.id} onChange={(e) => setForm({ ...form, id: e.target.value })} required /></label>
         <label>Tên<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
         <label>Vị trí<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} /></label>
+        <label>Phiên bản phần cứng<input placeholder="v1.0" maxLength={32} value={form.hwVersion} onChange={(e) => setForm({ ...form, hwVersion: e.target.value })} /></label>
         <button className="btn primary">Đăng ký thiết bị</button>
       </form>
       <div className="card">
         <table>
-          <thead><tr><th>Mã</th><th>Tên</th><th>Vị trí</th><th>Trạng thái</th><th>Lần cuối thấy</th><th>Thao tác</th></tr></thead>
+          <thead><tr><th>Mã</th><th>Tên</th><th>Vị trí</th><th>Trạng thái</th><th>Firmware</th><th>Phần cứng</th><th>Lần cuối thấy</th><th>Thao tác</th></tr></thead>
           <tbody>
             {devices.map((d) => (
               <tr key={d.id}>
@@ -75,8 +76,14 @@ export function AdminDevices() {
                 <td>{d.name}</td>
                 <td>{d.location}</td>
                 <td><StateBadge state={d.state} /></td>
+                <td>{d.fwVersion || '—'}</td>
+                <td>{d.hwVersion || '—'}</td>
                 <td>{fmtTime(d.lastSeenAt)}</td>
                 <td className="row gap wrap">
+                  <button className="btn small" onClick={() => {
+                    const v = prompt(`Phiên bản phần cứng của ${d.id} (để trống để xóa):`, d.hwVersion || '');
+                    if (v !== null) run(() => api(`/devices/${d.id}`, 'PATCH', { hwVersion: v.trim() }), 'Đã lưu phiên bản phần cứng.');
+                  }}>Sửa HW</button>
                   {d.state === 'REGISTERED' && <button className="btn small primary" onClick={() => provision(d)}>Cấp phát</button>}
                   {d.state !== 'REGISTERED' && d.state !== 'DECOMMISSIONED' && d.state !== 'MAINTENANCE' && (
                     <button className="btn small" onClick={() => run(() => api(`/devices/${d.id}/maintenance`, 'POST', { enabled: true }))}>Bảo trì</button>
@@ -98,7 +105,7 @@ export function AdminDevices() {
 export function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [devices, setDevices] = useState<Device[]>([]);
-  const [form, setForm] = useState({ username: '', password: '', fullName: '', role: 'VIEWER' as Role });
+  const [form, setForm] = useState({ username: '', password: '', fullName: '', email: '', phone: '', role: 'VIEWER' as Role });
   const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -125,7 +132,7 @@ export function AdminUsers() {
     e.preventDefault();
     run(async () => {
       await api('/users', 'POST', form);
-      setForm({ username: '', password: '', fullName: '', role: 'VIEWER' });
+      setForm({ username: '', password: '', fullName: '', email: '', phone: '', role: 'VIEWER' });
     }, 'Đã tạo người dùng.');
   };
 
@@ -142,6 +149,8 @@ export function AdminUsers() {
       <form className="card row gap wrap end" onSubmit={create}>
         <label>Tên đăng nhập<input value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} required /></label>
         <label>Họ tên<input value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} required /></label>
+        <label>Email<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
+        <label>Điện thoại<input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
         <label>Mật khẩu (≥ 8 ký tự)<input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} minLength={8} required /></label>
         <label>Vai trò
           <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value as Role })}>
@@ -152,12 +161,13 @@ export function AdminUsers() {
       </form>
       <div className="card">
         <table>
-          <thead><tr><th>Tài khoản</th><th>Họ tên</th><th>Vai trò</th><th>Trạng thái</th><th>Thiết bị được gán</th><th>Thao tác</th></tr></thead>
+          <thead><tr><th>Tài khoản</th><th>Họ tên</th><th>Liên hệ</th><th>Vai trò</th><th>Trạng thái</th><th>Thiết bị được gán</th><th>Thao tác</th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
                 <td>{u.username}</td>
                 <td>{u.fullName}</td>
+                <td className="small">{[u.email, u.phone].filter(Boolean).join(' · ') || '—'}</td>
                 <td>
                   <select value={u.role} onChange={(e) => run(() => api(`/users/${u.id}`, 'PATCH', { role: e.target.value }), 'Đã đổi vai trò.')}>
                     {(Object.keys(ROLE_LABEL) as Role[]).map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}

@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-force-exit --test-timeout=60000 e2e.test.mjs"
+    "test": "node --test --test-force-exit --test-timeout=60000 e2e.test.mjs e2e-extra.test.mjs"
   },
   "dependencies": {
     "mqtt": "^5.10.0",
