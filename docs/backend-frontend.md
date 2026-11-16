@@ -1,4 +1,4 @@
-# Bản dự phòng: backend, frontend, database
+# Backend, frontend, database
 
 Bản này chỉ nằm trên máy cá nhân, thêm phần backend, frontend, database cho đồ án để có điểm quay lại khi cần. Firmware không bị sửa; backend khớp đúng định dạng bản tin `net.h` đang gửi. Remote `origin` của thư mục này đã khóa push (`git remote -v` cho thấy push là `DISABLED`).
 
@@ -8,10 +8,10 @@ Dùng tên container và cổng khác bản gốc (cổng broker gốc là 1883)
 
 | Dịch vụ | Container | Cổng trên máy | Ghi chú |
 |---|---|---|---|
-| Mosquitto 2 + Dynamic Security | `sw-dp-mosquitto` | **1884** | tài khoản/ACL do backend quản lý |
-| PostgreSQL 16 | `sw-dp-postgres` | **5433** | dữ liệu trong volume `pgdata` |
-| Backend NestJS | `sw-dp-backend` | **3001** | API `/api`, socket.io `/socket.io` |
-| Frontend (nginx) | `sw-dp-frontend` | **8443** (HTTPS), 8081 (HTTP) | HTTPS bằng chứng chỉ tự ký; 8081 tự chuyển sang 8443; proxy `/api` và `/socket.io` (wss) sang backend |
+| Mosquitto 2 + Dynamic Security | `sw-app-mosquitto` | **1884** | tài khoản/ACL do backend quản lý |
+| PostgreSQL 16 | `sw-app-postgres` | **5433** | dữ liệu trong volume `pgdata` |
+| Backend NestJS | `sw-app-backend` | **3001** | API `/api`, socket.io `/socket.io` |
+| Frontend (nginx) | `sw-app-frontend` | **8443** (HTTPS), 8081 (HTTP) | HTTPS bằng chứng chỉ tự ký; 8081 tự chuyển sang 8443; proxy `/api` và `/socket.io` (wss) sang backend |
 
 ## 2. Chạy
 
@@ -30,7 +30,7 @@ Mở https://localhost:8443 (trình duyệt cảnh báo chứng chỉ tự ký, 
 
 ### 2.1 HTTPS cho web (chứng chỉ tự ký)
 
-nginx phục vụ web qua HTTPS (TLS 1.2/1.3) bằng `deployment/certs/server.crt` và `server.key`, mount chỉ đọc vào container `sw-dp-frontend`. **Khóa riêng không nằm trong git** (`deployment/certs/*`, `*.key`, `*.pem` đều bị `.gitignore` chặn; chỉ có `.gitkeep`). Không có chứng chỉ thì container web từ chối khởi động và in hướng dẫn.
+nginx phục vụ web qua HTTPS (TLS 1.2/1.3) bằng `deployment/certs/server.crt` và `server.key`, mount chỉ đọc vào container `sw-app-frontend`. **Khóa riêng không nằm trong git** (`deployment/certs/*`, `*.key`, `*.pem` đều bị `.gitignore` chặn; chỉ có `.gitkeep`). Không có chứng chỉ thì container web từ chối khởi động và in hướng dẫn.
 
 Tạo chứng chỉ (một lần cho mỗi máy), chạy ở gốc repo:
 
@@ -72,7 +72,7 @@ Thiết bị mẫu: `chau-01` (ESP32 thật) và `chau-02` (giả lập), bắt 
 Dùng `tests/integration/fake_device.py` (đúng định dạng firmware). Máy không có Python thì chạy trong container cùng mạng compose (lệnh chạy ở gốc repo, bash/PowerShell đều dùng được nếu thay `$PWD` bằng đường dẫn tuyệt đối):
 
 ```bash
-docker run -d --name sw-dp-fake-device --network smart-watering-dp_default \
+docker run -d --name sw-app-fake-device --network smart-watering-app_default \
   -v "$PWD/tests/integration:/repo/tests/integration:ro" -v "$PWD/.env:/repo/.env:ro" \
   -e MQTT_HOST=mosquitto -e MQTT_PORT=1883 -w /repo/tests/integration python:3.12-slim \
   sh -c "pip install -q -r requirements.txt && python -u fake_device.py --interval 10"
@@ -88,11 +88,11 @@ Có Python trên máy thì chạy thẳng (`MQTT_HOST=localhost`, `MQTT_PORT=188
 2. Trong `firmware/smart_watering/secrets.h`:
    ```c
    #define MQTT_HOST "192.168.x.x"   // IP LAN của máy chạy docker compose (không dùng localhost)
-   #define MQTT_PORT 1884            // bản dự phòng map broker ra cổng 1884
+   #define MQTT_PORT 1884            // bản này map broker ra cổng 1884
    #define MQTT_USER "chau-01"
    ```
-   Nếu dừng bản gốc và cho bản dự phòng dùng cổng 1883 thì đổi `1884:1883` thành `1883:1883` trong `deployment/docker-compose.yml` và giữ `MQTT_PORT 1883`.
-3. Mở cổng 1884/tcp trong tường lửa máy chạy broker (Windows: `New-NetFirewallRule -DisplayName "MQTT dự phòng" -Direction Inbound -Protocol TCP -LocalPort 1884 -Action Allow`, chạy bằng quyền admin).
+   Nếu dừng bản gốc và cho bản này dùng cổng 1883 thì đổi `1884:1883` thành `1883:1883` trong `deployment/docker-compose.yml` và giữ `MQTT_PORT 1883`.
+3. Mở cổng 1884/tcp trong tường lửa máy chạy broker (Windows: `New-NetFirewallRule -DisplayName "MQTT smart watering" -Direction Inbound -Protocol TCP -LocalPort 1884 -Action Allow`, chạy bằng quyền admin).
 4. Nạp firmware như `firmware/README.md`. Thiết bị lên ACTIVE khi gửi `status online` hoặc telemetry hợp lệ đầu tiên.
 
 ## 6. Phân quyền broker (Dynamic Security)
@@ -105,7 +105,7 @@ Backend đăng nhập bằng user quản trị (`MQTT_BACKEND_USER`) và gửi l
 - Cấp phát → `createClient` (mật khẩu ngẫu nhiên, trả một lần); thu hồi → `disableClient` (broker ngắt và từ chối kết nối).
 - File `dynamic-security.json` nằm trong volume Docker `mosq-data` (chỉ chứa hash mật khẩu), không nằm trong repo; `.gitignore` chặn `dynamic-security.json`, `.env`, `secrets.h`.
 
-Các file `mosquitto.static.conf`, `acl`, `create-users.sh` của bản gốc được giữ ở `deployment/mosquitto/legacy/` để tham khảo, bản dự phòng không dùng chúng.
+Các file `mosquitto.static.conf`, `acl`, `create-users.sh` của bản gốc được giữ ở `deployment/mosquitto/legacy/` để tham khảo, bản này không dùng chúng.
 
 ## 7. API chính
 

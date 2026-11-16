@@ -1,13 +1,13 @@
-# Bản dự phòng: mosquitto (Dynamic Security) + postgres + backend + frontend.
+# mosquitto (Dynamic Security) + postgres + backend + frontend.
 # Chạy từ thư mục deployment/:  docker compose up -d
 # Tên container và cổng khác bản gốc (mosquitto 1884, postgres 5433, backend 3001, web 8081)
 # nên chạy song song được với bản gốc dùng cổng 1883.
-name: smart-watering-dp
+name: smart-watering-app
 
 services:
   mosquitto-init:
     image: eclipse-mosquitto:2
-    container_name: sw-dp-mosquitto-init
+    container_name: sw-app-mosquitto-init
     env_file: ../.env
     entrypoint: ["/bin/sh", "/init/init-dynsec.sh"]
     volumes:
@@ -17,7 +17,7 @@ services:
 
   mosquitto:
     image: eclipse-mosquitto:2
-    container_name: sw-dp-mosquitto
+    container_name: sw-app-mosquitto
     ports:
       - "1884:1883"
     volumes:
@@ -30,7 +30,7 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: sw-dp-postgres
+    container_name: sw-app-postgres
     env_file: ../.env
     ports:
       - "5433:5432"
@@ -47,7 +47,7 @@ services:
     build:
       context: ..
       dockerfile: backend/Dockerfile
-    container_name: sw-dp-backend
+    container_name: sw-app-backend
     env_file: ../.env
     environment:
       MQTT_URL: mqtt://mosquitto:1883
@@ -64,7 +64,7 @@ services:
   frontend:
     build:
       context: ../frontend
-    container_name: sw-dp-frontend
+    container_name: sw-app-frontend
     ports:
       - "8443:443"   # HTTPS (chính)
       - "8081:80"    # tự chuyển sang https://...:8443

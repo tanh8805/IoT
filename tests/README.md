@@ -95,7 +95,7 @@ Mở từng sketch trong `firmware/` bằng Arduino IDE và nạp riêng, không
 - Cổng serial của máy đọc ra dữ liệu bị lặp và lẫn ký tự lạ (nghi cáp USB hoặc cổng), nên các số liệu ở trên lấy từ broker, không từ Serial; riêng F07 có dùng thêm dòng Serial `Man: DONG`.
 - Các bài để trống chưa được chạy (các bài cần backend, web, hoặc cần thao tác dài như NF03, NF06).
 
-## Kết quả test backend (bản dự phòng, chạy ngày 16/11/2026)
+## Kết quả test backend (chạy ngày 16/11/2026)
 
 Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới dựng từ volume trống (Windows 11, Docker Desktop, Mosquitto 2.1.2 + Dynamic Security, PostgreSQL 16, Node 22 trong container, thiết bị giả `chau-02`, nginx HTTPS với chứng chỉ tự ký). Kết quả thật, **30/30 đạt, 0 lỗi** (17 test ở `e2e.test.mjs` và 13 test bổ sung ở `e2e-extra.test.mjs`). Toàn văn ở `backend/last-e2e-run.txt`.
 
@@ -135,4 +135,4 @@ Mười bước demo của đề: xem [docs/demo-checklist.md](../docs/demo-chec
 
 Giao diện: các trang mới (chi tiết thiết bị có phiên bản firmware, bảng thống kê, nút Xuất CSV; trang Tài khoản) được mở thử bằng trình duyệt qua Vite dev server (HTTP) và hiển thị đúng dữ liệu; chưa mở được qua HTTPS trong trình duyệt tích hợp vì nó từ chối chứng chỉ tự ký (HTTPS được kiểm bằng test ở trên). Chưa bấm thử từng nút đổi mật khẩu/xuất CSV trên giao diện, phần đó kiểm bằng API.
 
-Giới hạn: chưa thử với ESP32 `chau-01` thật trong bản dự phòng này (máy dựng bản này không có phần cứng và không có `secrets.h`); toàn bộ thử nghiệm dùng thiết bị giả `chau-02`. Các bài S07 ở bảng trên đã được tự động hóa bằng test "Decommissioned không kết nối được broker".
+Giới hạn: chưa thử với ESP32 `chau-01` thật trong bản này (máy dựng bản này không có phần cứng và không có `secrets.h`); toàn bộ thử nghiệm dùng thiết bị giả `chau-02`. Các bài S07 ở bảng trên đã được tự động hóa bằng test "Decommissioned không kết nối được broker".

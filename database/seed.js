@@ -1,5 +1,5 @@
 // Seed: 3 người dùng mẫu và 2 thiết bị chau-01, chau-02. Chạy lại nhiều lần được (idempotent).
-// Mật khẩu mẫu ghi trong docs/du-phong.md. Đây là mật khẩu thử nghiệm, đổi khi triển khai thật.
+// Mật khẩu mẫu ghi trong docs/backend-frontend.md. Đây là mật khẩu thử nghiệm, đổi khi triển khai thật.
 const path = require('path');
 const resolveFrom = [process.cwd(), path.join(__dirname, '..', 'backend')];
 const { PrismaClient } = require(require.resolve('@prisma/client', { paths: resolveFrom }));

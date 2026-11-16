@@ -173,7 +173,7 @@ Kế hoạch kiểm thử và kết quả đã chạy ở [tests/README.md](test
 
 ### 4.4 Backend và frontend
 
-Xem [docs/du-phong.md](docs/du-phong.md): tạo chứng chỉ HTTPS tự ký một lần bằng `node deployment/scripts/gen-cert.mjs`, rồi chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`. Web chạy HTTPS ở https://localhost:8443 (cổng 8081 tự chuyển sang đó).
+Xem [docs/backend-frontend.md](docs/backend-frontend.md): tạo chứng chỉ HTTPS tự ký một lần bằng `node deployment/scripts/gen-cert.mjs`, rồi chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`. Web chạy HTTPS ở https://localhost:8443 (cổng 8081 tự chuyển sang đó).
 
 ## 5. Thư viện bên thứ ba
 

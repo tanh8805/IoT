@@ -1,5 +1,5 @@
 // Chạy 10 bước demo của đề trên hệ thống thật (compose + fake_device chau-02 đang chạy) và in kết quả.
-// Cần docker (để ngắt/ chạy lại container thiết bị giả: sw-dp-fake-device).
+// Cần docker (để ngắt/ chạy lại container thiết bị giả: sw-app-fake-device).
 // Chạy: cd tests/backend && node demo-check.mjs        (mất khoảng 2 phút)
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -161,7 +161,7 @@ await step(6, 'Đổi cấu hình', async () => {
 });
 
 await step(7, 'Ngắt kết nối → offline', async () => {
-  docker('kill', 'sw-dp-fake-device');
+  docker('kill', 'sw-app-fake-device');
   const off = await until(async () => (await stateOf(admin, 'chau-02')) === 'OFFLINE', 15000, 500);
   need(off, 'chau-02 không chuyển OFFLINE sau khi bị kill (Last Will)');
   const alert = await until(async () => (await http('GET', '/alerts?deviceId=chau-02', admin)).body.find((a) => a.type === 'DEVICE_OFFLINE' && a.status === 'NEW'), 5000);
@@ -169,7 +169,7 @@ await step(7, 'Ngắt kết nối → offline', async () => {
   const cmd = await http('POST', '/devices/chau-02/commands', operator, { action: 'pump_off' });
   need(cmd.status === 409, `lệnh tới thiết bị offline phải bị 409, nhận ${cmd.status}`);
   const hist = (await http('GET', '/devices/chau-02/state-history', admin)).body[0];
-  docker('start', 'sw-dp-fake-device');
+  docker('start', 'sw-app-fake-device');
   const back = await until(async () => (await stateOf(admin, 'chau-02')) === 'ACTIVE', 40000, 1000);
   need(back, 'chau-02 không trở lại ACTIVE sau khi chạy lại');
   const resolved = await until(async () => !(await http('GET', '/alerts?deviceId=chau-02&status=NEW', admin)).body.some((a) => a.type === 'DEVICE_OFFLINE'), 8000);
@@ -178,12 +178,12 @@ await step(7, 'Ngắt kết nối → offline', async () => {
 });
 
 await step('7b', 'Quá 35 giây không có telemetry → offline (watchdog)', async () => {
-  docker('pause', 'sw-dp-fake-device');
+  docker('pause', 'sw-app-fake-device');
   const t0 = Date.now();
   const off = await until(async () => (await stateOf(admin, 'chau-02')) === 'OFFLINE', 60000, 1000);
   const secs = Math.round((Date.now() - t0) / 1000);
   const hist = (await http('GET', '/devices/chau-02/state-history', admin)).body[0];
-  docker('unpause', 'sw-dp-fake-device');
+  docker('unpause', 'sw-app-fake-device');
   need(off, 'không chuyển OFFLINE khi thiết bị im lặng');
   await until(async () => (await stateOf(admin, 'chau-02')) === 'ACTIVE', 60000, 1000);
   return `OFFLINE sau ${secs}s im lặng (lý do: "${hist.reason}")`;

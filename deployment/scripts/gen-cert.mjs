@@ -28,7 +28,7 @@ const sans = ['DNS:localhost', 'IP:127.0.0.1', ...extra.map((h) => (isIp(h) ? `I
 const opensslArgs = (dir) => [
   'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '825',
   '-keyout', `${dir}/server.key`, '-out', `${dir}/server.crt`,
-  '-subj', '/CN=localhost/O=Smart Watering (ban du phong)',
+  '-subj', '/CN=localhost/O=Smart Watering (app)',
   '-addext', `subjectAltName=${sans.join(',')}`,
 ];
 

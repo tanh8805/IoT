@@ -1,4 +1,4 @@
-# Test backend (bản dự phòng)
+# Test backend
 
 Test e2e chạy trên hệ thống thật đang chạy bằng `docker compose` (backend + broker Dynamic Security + postgres), không mock.
 
@@ -18,13 +18,13 @@ Cần: `.env` ở gốc repo, stack đang chạy, và thiết bị giả `chau-0
 cd tests/backend
 npm install
 npm test                  # 30 test e2e (e2e.test.mjs + e2e-extra.test.mjs)
-node demo-check.mjs       # 10 bước demo (dừng/chạy lại container sw-dp-fake-device)
+node demo-check.mjs       # 10 bước demo (dừng/chạy lại container sw-app-fake-device)
 ```
 
 Thiết bị giả `chau-02` (không cần cài Python trên máy host, chạy trong container cùng mạng compose):
 
 ```bash
-docker run -d --name sw-dp-fake-device --network smart-watering-dp_default \
+docker run -d --name sw-app-fake-device --network smart-watering-app_default \
   -v "$PWD/tests/integration:/repo/tests/integration:ro" -v "$PWD/.env:/repo/.env:ro" \
   -e MQTT_HOST=mosquitto -e MQTT_PORT=1883 -w /repo/tests/integration python:3.12-slim \
   sh -c "pip install -q -r requirements.txt && python -u fake_device.py --interval 10"

@@ -1,4 +1,4 @@
-// Schema PostgreSQL cho hệ thống tưới cây thông minh (bản dự phòng).
+// Schema PostgreSQL cho hệ thống tưới cây thông minh.
 generator client {
   provider = "prisma-client-js"
 }

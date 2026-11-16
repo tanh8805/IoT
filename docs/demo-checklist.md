@@ -1,4 +1,4 @@
-# Checklist 10 bước demo (bản dự phòng)
+# Checklist 10 bước demo
 
 Kết quả chạy thật ngày 16/11/2026 (chạy lại sau khi thêm chức năng bổ sung, vẫn 11/11) bằng `node tests/backend/demo-check.mjs` trên hệ thống dựng từ volume trống bằng `docker compose up -d`, thiết bị giả `chau-02` đang chạy. Toàn văn: `tests/backend/last-demo-run.txt`. Kết quả tự động: **11/11 mục đạt**.
 
@@ -32,19 +32,19 @@ Chạy lại sau khi thêm các chức năng dưới đây trên stack dựng l�
 | B6 | Thống kê min/max/TB theo giờ và ngày, lọc khoảng thời gian | Đạt | e2e + xem bảng trên trình duyệt | Ranh giới giờ/ngày theo múi giờ `tz` |
 | B7 | Xuất CSV dữ liệu lịch sử | Đạt | e2e (API) | Chưa bấm nút tải trên giao diện |
 | B8 | HTTPS cho web (chứng chỉ tự ký, khóa không commit) | Đạt | e2e | Trình duyệt tích hợp từ chối chứng chỉ tự ký nên chưa xem giao diện qua HTTPS |
-| B9 | Đơn vị đo và quy tắc timestamp trong tài liệu | Có | README gốc, `docs/du-phong.md` | Khớp với `telemetry.validator.ts` |
+| B9 | Đơn vị đo và quy tắc timestamp trong tài liệu | Có | README gốc, `docs/backend-frontend.md` | Khớp với `telemetry.validator.ts` |
 
 ## Cách chạy lại
 
 ```bash
 node deployment/scripts/gen-cert.mjs         # chứng chỉ HTTPS (một lần)
 cd deployment && docker compose up -d        # dựng hệ thống
-# chạy thiết bị giả chau-02 (xem docs/du-phong.md, mục 4)
+# chạy thiết bị giả chau-02 (xem docs/backend-frontend.md, mục 4)
 cd ../tests/backend && npm install && node demo-check.mjs
 ```
 
 ## Giới hạn đã biết
 
-- Bản dự phòng được kiểm bằng thiết bị giả. Chưa thử ESP32 thật, và máy dựng bản này không có `firmware/smart_watering/secrets.h`, nên mật khẩu MQTT của `chau-01` là mật khẩu ngẫu nhiên trong `.env` (xem `docs/du-phong.md`, mục 5, để đồng bộ với firmware).
+- bản này được kiểm bằng thiết bị giả. Chưa thử ESP32 thật, và máy dựng bản này không có `firmware/smart_watering/secrets.h`, nên mật khẩu MQTT của `chau-01` là mật khẩu ngẫu nhiên trong `.env` (xem `docs/backend-frontend.md`, mục 5, để đồng bộ với firmware).
 - Bước 7b mất khoảng 40 giây vì phải chờ watchdog; bước 7 dựa vào Last Will nên gần như tức thì.
 - Firmware không bị sửa.
