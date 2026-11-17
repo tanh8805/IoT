@@ -22,10 +22,14 @@ const API_ORIGIN = API.replace(/\/api$/, '');
 const MQTT_URL = process.env.MQTT_URL || `mqtt://localhost:${env.MQTT_PORT || 1884}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Backend giới hạn đăng nhập 5 lần/phút theo IP và tin X-Forwarded-For (trust proxy). Mỗi request giả một IP
+// riêng để nhiều lần đăng nhập của bộ test không chạm giới hạn; test giới hạn thật nằm ở nhóm 'Xác thực'.
+const fakeIp = () => `198.51.100.${1 + Math.floor(Math.random() * 250)}`;
+
 async function http(method, path, token, body) {
   const res = await fetch(API + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': fakeIp(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();

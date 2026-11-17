@@ -1,7 +1,9 @@
 // Chạy 10 bước demo của đề trên hệ thống thật (compose + fake_device chau-02 đang chạy) và in kết quả.
-// Cần docker (để ngắt/ chạy lại container thiết bị giả: sw-app-fake-device).
+// Thiết bị giả chau-02: nếu container docker `sw-app-fake-device` đang chạy thì dùng nó (docker kill/pause);
+// nếu không, script tự chạy tests/integration/fake_device.mjs (Node) và điều khiển tiến trình đó, không cần Python.
+// Đừng chạy sẵn fake_device bản khác cho chau-02 khi chạy script này.
 // Chạy: cd tests/backend && node demo-check.mjs        (mất khoảng 2 phút)
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,10 +23,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
 const log = (m) => console.log(m);
 
+// Backend giới hạn đăng nhập 5 lần/phút theo IP và tin X-Forwarded-For (trust proxy). Mỗi request giả một IP
+// riêng để nhiều lần đăng nhập của bộ test không chạm giới hạn; test giới hạn thật nằm ở nhóm 'Xác thực'.
+const fakeIp = () => `198.51.100.${1 + Math.floor(Math.random() * 250)}`;
+
 async function http(method, path, token, body) {
   const res = await fetch(API + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': fakeIp(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -53,6 +59,38 @@ function mqttConnect(username, password) {
 }
 const pub = (c, topic, payload) => new Promise((res) => c.publish(topic, payload, { qos: 1 }, res));
 const docker = (...a) => execFileSync('docker', a, { encoding: 'utf8' }).trim();
+
+// Điều khiển thiết bị giả: container docker (nếu đang chạy) hoặc tiến trình Node do script tự quản lý.
+const containerRunning = () => {
+  try {
+    return docker('inspect', '-f', '{{.State.Running}}', 'sw-app-fake-device') === 'true';
+  } catch {
+    return false;
+  }
+};
+const useDocker = containerRunning();
+let fakeProc = null;
+const fake = {
+  start() {
+    if (useDocker) return docker('start', 'sw-app-fake-device');
+    fakeProc = spawn(process.execPath, [join(root, 'tests', 'integration', 'fake_device.mjs'), '--stdin-control'], { stdio: ['pipe', 'ignore', 'inherit'] });
+  },
+  kill() {
+    if (useDocker) return docker('kill', 'sw-app-fake-device');
+    fakeProc?.kill('SIGKILL'); // chết đột ngột: broker phát Last Will
+    fakeProc = null;
+  },
+  pause() {
+    if (useDocker) return docker('pause', 'sw-app-fake-device');
+    fakeProc?.stdin.write('pause\n'); // vẫn giữ kết nối MQTT nhưng ngừng gửi telemetry
+  },
+  unpause() {
+    if (useDocker) return docker('unpause', 'sw-app-fake-device');
+    fakeProc?.stdin.write('resume\n');
+  },
+};
+process.on('exit', () => fakeProc?.kill('SIGKILL'));
+if (!useDocker) fake.start();
 const stateOf = async (t, id) => (await http('GET', `/devices/${id}`, t)).body.state;
 
 async function step(n, name, fn) {
@@ -161,7 +199,7 @@ await step(6, 'Đổi cấu hình', async () => {
 });
 
 await step(7, 'Ngắt kết nối → offline', async () => {
-  docker('kill', 'sw-app-fake-device');
+  fake.kill();
   const off = await until(async () => (await stateOf(admin, 'chau-02')) === 'OFFLINE', 15000, 500);
   need(off, 'chau-02 không chuyển OFFLINE sau khi bị kill (Last Will)');
   const alert = await until(async () => (await http('GET', '/alerts?deviceId=chau-02', admin)).body.find((a) => a.type === 'DEVICE_OFFLINE' && a.status === 'NEW'), 5000);
@@ -169,7 +207,7 @@ await step(7, 'Ngắt kết nối → offline', async () => {
   const cmd = await http('POST', '/devices/chau-02/commands', operator, { action: 'pump_off' });
   need(cmd.status === 409, `lệnh tới thiết bị offline phải bị 409, nhận ${cmd.status}`);
   const hist = (await http('GET', '/devices/chau-02/state-history', admin)).body[0];
-  docker('start', 'sw-app-fake-device');
+  fake.start();
   const back = await until(async () => (await stateOf(admin, 'chau-02')) === 'ACTIVE', 40000, 1000);
   need(back, 'chau-02 không trở lại ACTIVE sau khi chạy lại');
   const resolved = await until(async () => !(await http('GET', '/alerts?deviceId=chau-02&status=NEW', admin)).body.some((a) => a.type === 'DEVICE_OFFLINE'), 8000);
@@ -178,12 +216,12 @@ await step(7, 'Ngắt kết nối → offline', async () => {
 });
 
 await step('7b', 'Quá 35 giây không có telemetry → offline (watchdog)', async () => {
-  docker('pause', 'sw-app-fake-device');
+  fake.pause();
   const t0 = Date.now();
   const off = await until(async () => (await stateOf(admin, 'chau-02')) === 'OFFLINE', 60000, 1000);
   const secs = Math.round((Date.now() - t0) / 1000);
   const hist = (await http('GET', '/devices/chau-02/state-history', admin)).body[0];
-  docker('unpause', 'sw-app-fake-device');
+  fake.unpause();
   need(off, 'không chuyển OFFLINE khi thiết bị im lặng');
   await until(async () => (await stateOf(admin, 'chau-02')) === 'ACTIVE', 60000, 1000);
   return `OFFLINE sau ${secs}s im lặng (lý do: "${hist.reason}")`;
@@ -192,11 +230,19 @@ await step('7b', 'Quá 35 giây không có telemetry → offline (watchdog)', as
 await step(8, 'Kích hoạt cảnh báo', async () => {
   const conn = await mqttConnect(env.MQTT_FAKE_DEVICE_USER, env.MQTT_FAKE_DEVICE_PASS);
   need(conn.ok, `chau-02 không kết nối: ${conn.error}`);
+  // Đưa về trạng thái sạch để chạy lại nhiều lần vẫn đúng: ngưỡng đất khô mặc định 20%, thiết bị giả tạm im,
+  // một bản tin khỏe mạnh đóng các cảnh báo LOW_SOIL/AUTO_BLOCKED còn tồn từ lần chạy trước.
+  fake.pause();
+  const cfg = await http('POST', '/devices/chau-02/config', admin, { low_soil_pct: 20 });
+  need(cfg.status === 200, `đặt low_soil_pct=20 phải 200, nhận ${cfg.status}`);
+  await pub(conn.client, 'devices/chau-02/telemetry', JSON.stringify({ ts: null, soil_raw: 2400, soil_pct: 44, lux: 5000, pump: false, curtain: 'open', auto_blocked: false, fw: 'demo' }));
+  await sleep(1000);
   const t = { ts: null, soil_raw: 3500, soil_pct: 10, lux: 5000, pump: false, curtain: 'open', auto_blocked: true, fw: 'demo' };
   await pub(conn.client, 'devices/chau-02/telemetry', JSON.stringify(t));
   await pub(conn.client, 'devices/chau-02/telemetry', JSON.stringify(t));
   await sleep(1500);
   conn.client.end(true);
+  fake.unpause();
   const list = (await http('GET', '/alerts?deviceId=chau-02&status=NEW', operator)).body;
   const low = list.filter((a) => a.type === 'LOW_SOIL');
   const blocked = list.filter((a) => a.type === 'AUTO_BLOCKED');

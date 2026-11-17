@@ -22,10 +22,14 @@ const API = process.env.API_URL || 'http://localhost:3001/api';
 const MQTT_URL = process.env.MQTT_URL || `mqtt://localhost:${env.MQTT_PORT || 1884}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Backend giới hạn đăng nhập 5 lần/phút theo IP và tin X-Forwarded-For (trust proxy). Mỗi request giả một IP
+// riêng để nhiều lần đăng nhập của bộ test không chạm giới hạn; test giới hạn thật nằm ở nhóm 'Xác thực'.
+const fakeIp = () => `198.51.100.${1 + Math.floor(Math.random() * 250)}`;
+
 async function http(method, path, token, body) {
   const res = await fetch(API + path, {
     method,
-    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': fakeIp(), ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
   const text = await res.text();
@@ -77,6 +81,21 @@ describe('Xác thực', () => {
   test('đăng nhập sai tên đăng nhập bị từ chối (401)', async () => {
     const r = await http('POST', '/auth/login', null, { username: 'khong-ton-tai', password: 'x' });
     assert.equal(r.status, 401);
+  });
+
+  test('đăng nhập sai quá 5 lần mỗi phút từ một IP bị chặn (429), IP khác vẫn đăng nhập được', async () => {
+    const ip = `203.0.113.${1 + Math.floor(Math.random() * 250)}`;
+    const attempt = (from, password) =>
+      fetch(API + '/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': from },
+        body: JSON.stringify({ username: 'viewer', password }),
+      });
+    for (let i = 0; i < 5; i++) assert.equal((await attempt(ip, 'sai')).status, 401);
+    const blocked = await attempt(ip, 'Viewer@123'); // đúng mật khẩu nhưng vẫn bị chặn vì vượt giới hạn
+    assert.equal(blocked.status, 429);
+    assert.ok(blocked.headers.get('retry-after'));
+    assert.equal((await attempt('198.51.100.251', 'Viewer@123')).status, 200);
   });
 
   test('không có token bị từ chối (401)', async () => {
