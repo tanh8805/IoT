@@ -192,6 +192,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r tests/integration/requirements.txt
 cd tests/integration
 ../../.venv/bin/python fake_device.py                       # giữ chạy ở một terminal
+# Máy không có Python: cd tests/backend && npm install, rồi chạy bản Node: node ../integration/fake_device.mjs
 ../../.venv/bin/python measure_cmd_latency.py --device chau-02
 ../../.venv/bin/python send_duplicate_cmd.py --device chau-02
 cd ../.. && ./tests/security/test_broker_acl.sh             # kiểm tra xác thực và ACL
