@@ -1,4 +1,5 @@
-import { Role } from '@prisma/client';
+import { AlertStatus, Role } from '@prisma/client';
+import { Type } from 'class-transformer';
 import { IsBoolean, IsEnum, IsIn, IsInt, IsNumber, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, IsArray } from 'class-validator';
 import { Action, ACTIONS } from './commands/commands.service';
 
@@ -70,4 +71,10 @@ export class ConfigDto {
   @IsOptional() @IsInt() @Min(5) @Max(95) soil_threshold?: number;
   @IsOptional() @IsNumber() @Min(1) @Max(200000) lux_close?: number;
   @IsOptional() @IsNumber() @Min(1) @Max(200000) lux_open?: number;
+}
+
+export class AlertQueryDto {
+  @IsOptional() @IsEnum(AlertStatus, { message: 'status phải là NEW, ACKNOWLEDGED hoặc RESOLVED' }) status?: AlertStatus;
+  @IsOptional() @IsString() @MaxLength(32) deviceId?: string;
+  @IsOptional() @Type(() => Number) @IsInt({ message: 'limit phải là số nguyên dương' }) @Min(1, { message: 'limit phải là số nguyên dương' }) @Max(500) limit?: number;
 }

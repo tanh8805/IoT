@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req, Res } from '@nestjs/common';
-import { AlertStatus } from '@prisma/client';
 import { Request, Response } from 'express';
 import { AlertsService } from './alerts/alerts.service';
 import { AuditService } from './audit/audit.service';
@@ -8,7 +7,7 @@ import { AuthUser, CurrentToken, CurrentUser, Public, Roles } from './common/aut
 import { CommandsService } from './commands/commands.service';
 import { ConfigService } from './commands/config.service';
 import { DevicesService } from './devices/devices.service';
-import { AssignDevicesDto, ChangePasswordDto, UpdateProfileDto, CommandDto, ConfigDto, CreateDeviceDto, CreateUserDto, LoginDto, MaintenanceDto, UpdateDeviceDto, UpdateUserDto } from './dto';
+import { AlertQueryDto, AssignDevicesDto, ChangePasswordDto, UpdateProfileDto, CommandDto, ConfigDto, CreateDeviceDto, CreateUserDto, LoginDto, MaintenanceDto, UpdateDeviceDto, UpdateUserDto } from './dto';
 import { PrismaService } from './prisma/prisma.service';
 import { UsersService } from './users/users.service';
 
@@ -141,8 +140,8 @@ export class DevicesController {
 export class AlertsController {
   constructor(private readonly alerts: AlertsService) {}
 
-  @Get() list(@CurrentUser() u: AuthUser, @Query('status') status?: AlertStatus, @Query('deviceId') deviceId?: string) {
-    return this.alerts.list(u, { status, deviceId });
+  @Get() list(@CurrentUser() u: AuthUser, @Query() q: AlertQueryDto) {
+    return this.alerts.list(u, { status: q.status, deviceId: q.deviceId, limit: q.limit });
   }
   @Post(':id/ack') @Roles('ADMIN', 'OPERATOR') @HttpCode(200)
   ack(@CurrentUser() u: AuthUser, @Param('id', ParseIntPipe) id: number, @Req() req: Request) {
