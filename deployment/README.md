@@ -16,12 +16,12 @@ deployment/
 
 ```bash
 node deployment/scripts/init-env.mjs     # từ gốc repo, tạo .env
-node deployment/scripts/gen-cert.mjs     # tạo chứng chỉ HTTPS tự ký (xem docs/backend-frontend.md mục 2.1)
+node deployment/scripts/gen-cert.mjs     # tạo chứng chỉ HTTPS tự ký
 cd deployment
 docker compose up -d --build
 docker compose ps
 ```
 
-Cổng trên máy: broker 1884, PostgreSQL 5433, backend 3001, web HTTPS 8443 (8081 chuyển hướng sang 8443) (khác bản gốc để chạy song song). Chi tiết, tài khoản mẫu, cách nối ESP32 thật: [../docs/backend-frontend.md](../docs/backend-frontend.md).
+Cổng trên máy: broker 1884, PostgreSQL 5433, backend 3001, web HTTPS 8443 (8081 chuyển hướng sang 8443) (khác bản gốc để chạy song song). Tài khoản mẫu: `database/seed.js`.
 
 Tài khoản MQTT của thiết bị do backend tạo trên broker (không còn `create-users.sh`). Dữ liệu broker nằm trong volume `mosq-data`; xóa hết để dựng lại từ đầu: `docker compose down -v`.

@@ -131,7 +131,7 @@ Chạy bằng `cd tests/backend && npm test` trên stack docker compose mới d�
 | HTTPS | Web phục vụ TLS 1.2/1.3 bằng chứng chỉ tự ký (SAN có `localhost`), proxy `/api`; máy khách bắt buộc xác minh thì từ chối chứng chỉ | Đạt |
 | HTTPS | Cổng 8081 chuyển 301 sang `https://localhost:8443` giữ nguyên đường dẫn; socket.io chạy được trên wss | Đạt |
 
-Mười bước demo của đề: xem [docs/demo-checklist.md](../docs/demo-checklist.md) (11/11 mục đạt, gồm cả bước phụ 7b).
+Mười bước demo của đề: chạy `node demo-check.mjs` trong `tests/backend`, kết quả lần gần nhất ở `backend/last-demo-run.txt` (11/11 mục đạt, gồm cả bước phụ 7b).
 
 Giao diện: các trang mới (chi tiết thiết bị có phiên bản firmware, bảng thống kê, nút Xuất CSV; trang Tài khoản) được mở thử bằng trình duyệt qua Vite dev server (HTTP) và hiển thị đúng dữ liệu; chưa mở được qua HTTPS trong trình duyệt tích hợp vì nó từ chối chứng chỉ tự ký (HTTPS được kiểm bằng test ở trên). Chưa bấm thử từng nút đổi mật khẩu/xuất CSV trên giao diện, phần đó kiểm bằng API.
 

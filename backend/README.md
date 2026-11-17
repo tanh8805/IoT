@@ -2,7 +2,7 @@
 
 API NestJS + TypeScript: nhận telemetry từ MQTT, lưu PostgreSQL (Prisma), quản lý vòng đời thiết bị và tài khoản MQTT qua Mosquitto Dynamic Security, JWT + 3 vai trò (admin, operator, viewer), gửi lệnh/cấu hình, cảnh báo, audit log, đẩy realtime qua socket.io.
 
-Mô tả đầy đủ (API, quy tắc nghiệp vụ, cách chạy): [../docs/backend-frontend.md](../docs/backend-frontend.md).
+Cách chạy cả hệ thống: [../deployment/README.md](../deployment/README.md).
 
 ```
 src/
