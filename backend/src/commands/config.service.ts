@@ -24,7 +24,7 @@ export class ConfigService {
     private readonly commands: CommandsService,
   ) {}
 
-  /** Đổi ngưỡng: kiểm tra, publish devices/<id>/config, lưu lịch sử. */
+  /** Đổi ngưỡng: kiểm tra, publish devices/<id>/config (retain để thiết bị offline nhận khi nối lại), lưu lịch sử. */
   async change(user: AuthUser, deviceId: string, dto: ConfigInput, ip?: string) {
     const device = await this.access.assertAccess(user, deviceId);
     this.commands.assertControllable(device.state);
@@ -41,7 +41,7 @@ export class ConfigService {
     if (newValue.lux_open >= newValue.lux_close) throw new BadRequestException('lux_open phải nhỏ hơn lux_close');
 
     try {
-      await this.mqtt.publish(`devices/${deviceId}/config`, JSON.stringify(newValue), 1, false);
+      await this.mqtt.publish(`devices/${deviceId}/config`, JSON.stringify(newValue), 1, true);
     } catch (e) {
       throw new BadRequestException(`Không gửi được cấu hình lên broker: ${(e as Error).message}`);
     }
