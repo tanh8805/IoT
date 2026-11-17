@@ -73,6 +73,25 @@ Mỗi thiết bị dùng các topic `devices/<id>/...`, ví dụ `<id>` là `cha
 {"ts":1794534238,"soil_raw":2412,"soil_pct":44,"lux":12366.6,"pump":false,"curtain":"open","auto_blocked":false,"fw":"1.0.0"}
 ```
 
+**Đơn vị đo:**
+
+| Trường | Đơn vị / khoảng | Ghi chú |
+|---|---|---|
+| `soil_raw` | giá trị ADC 12 bit, 0–4095, không có đơn vị | Càng cao càng khô (khô ~3800, ướt ~650) |
+| `soil_pct` | phần trăm (%), số nguyên 0–100 | Độ ẩm đất quy đổi từ `soil_raw` |
+| `lux` | lux (lx), số thực ≥ 0, cảm biến BH1750 đo tới 65535 | `null` khi chưa lắp hoặc không đọc được cảm biến |
+| `pump` | boolean | `true` khi bơm đang chạy |
+| `curtain` | `"open"`, `"closed"` hoặc `null` | `null` khi chưa lắp servo |
+| `duration_s` (lệnh) | giây, 1–15 | Thời gian chạy bơm |
+| `soil_threshold` (config) | phần trăm (%), 5–95 | Tưới khi độ ẩm dưới ngưỡng |
+| `lux_close`, `lux_open` (config) | lux (lx) | `lux_open` < `lux_close` |
+
+**Quy tắc timestamp `ts`:**
+- `ts` là giờ UNIX tính bằng **giây** (UTC) do thiết bị lấy từ NTP, ví dụ `1794534238`. Không có múi giờ trong số này; múi giờ chỉ áp dụng khi hiển thị.
+- Thiết bị chưa đồng bộ được giờ thì gửi `ts: null` (firmware coi giờ nhỏ hơn `1700000000` là chưa có giờ).
+- Backend dùng `ts` của thiết bị làm thời điểm đo. Nếu `ts` là `null`, thiếu, nhỏ hơn `1600000000` (đồng hồ chưa chỉnh) hoặc lệch quá 24 giờ về phía tương lai thì dùng **giờ server lúc nhận**. Số nguyên không hợp lệ về kiểu (chuỗi, số thực) thì bản tin bị từ chối.
+- Backend luôn ghi thêm `receivedAt` (giờ server lúc nhận) bên cạnh `ts`. Lưu trong PostgreSQL và xuất CSV đều là UTC (ISO 8601, hậu tố `Z`).
+
 **cmd** (`action`: `pump_on`, `pump_off`, `curtain_open`, `curtain_close`; `duration_s` chỉ dùng cho `pump_on`, từ 1 đến 15 giây, mặc định 5):
 
 ```json
@@ -95,18 +114,18 @@ Mỗi thiết bị dùng các topic `devices/<id>/...`, ví dụ `<id>` là `cha
 
 ### Phân quyền broker
 
-Broker bắt buộc đăng nhập (`allow_anonymous false`). File `deployment/mosquitto/config/acl`:
+Broker bắt buộc đăng nhập (`allow_anonymous false`). Quyền do plugin Dynamic Security quản lý, backend tạo khi cấp phát thiết bị (file ACL tĩnh cũ nằm ở `deployment/mosquitto/legacy/`):
 - User `backend` đọc/ghi `devices/#`.
-- Mỗi thiết bị chỉ được ghi `telemetry`, `status`, `ack` và chỉ đọc `cmd`, `config` của topic mang đúng tên đăng nhập của nó (`devices/%u/...`). `chau-02` không thể gửi lệnh hay nghe dữ liệu của `chau-01`.
+- Mỗi thiết bị có role riêng `dev-<id>`, chỉ được ghi `telemetry`, `status`, `ack` và chỉ đọc `cmd`, `config` của topic mang đúng tên đăng nhập của nó (`devices/<id>/...`). `chau-02` không thể gửi lệnh hay nghe dữ liệu của `chau-01`.
 
 ## 3. Cấu trúc thư mục
 
 | Thư mục | Nội dung |
 |---|---|
 | `firmware/` | Firmware ESP32 (Arduino), thư viện và cách nạp |
-| `backend/` | API NestJS, xử lý telemetry, quản lý thiết bị (đang cập nhật) |
-| `frontend/` | Dashboard web (đang cập nhật) |
-| `database/` | Schema, migration PostgreSQL (đang cập nhật) |
+| `backend/` | API NestJS, xử lý telemetry, quản lý thiết bị |
+| `frontend/` | Dashboard web React |
+| `database/` | Schema, migration, seed PostgreSQL (Prisma) |
 | `deployment/` | Docker Compose và cấu hình Mosquitto |
 | `hardware/` | Linh kiện, sơ đồ nối dây, ảnh mạch |
 | `tests/` | Sketch kiểm tra phần cứng, script tích hợp MQTT, test bảo mật, kế hoạch kiểm thử |
@@ -119,18 +138,46 @@ git clone https://github.com/tanh8805/IoT.git iot-smart-watering
 cd iot-smart-watering
 ```
 
-### 4.1 Broker MQTT (`deployment/`)
+### 4.1 Chạy cả hệ thống: broker, backend, frontend (`deployment/`)
 
-Cần Docker và Docker Compose.
+Cần Docker và Docker Compose, cùng Node.js để chạy hai script tạo cấu hình. Chạy từ thư mục gốc của repo:
 
 ```bash
-cp .env.example .env                       # điền MQTT_HOST và 3 mật khẩu MQTT
-./deployment/mosquitto/create-users.sh     # tạo user backend, chau-01, chau-02
-sudo firewall-cmd --add-port=1883/tcp --permanent && sudo firewall-cmd --reload   # Fedora
-cd deployment && docker compose up -d
+node deployment/scripts/init-env.mjs     # tạo .env với mật khẩu ngẫu nhiên (không ghi đè nếu .env đã có)
+node deployment/scripts/gen-cert.mjs     # tạo chứng chỉ HTTPS tự ký vào deployment/certs (không ghi đè)
+cd deployment && docker compose up -d --build
 ```
 
-Chi tiết và cách kiểm tra bằng `mosquitto_sub` ở [deployment/README.md](deployment/README.md).
+Lần đầu chạy, backend tự áp migration, tạo dữ liệu mẫu và tạo tài khoản MQTT của `chau-01`, `chau-02` trên broker (Mosquitto Dynamic Security). `.env` và chứng chỉ không được đưa vào git.
+
+**Các cổng trên máy host**
+
+| Cổng | Dịch vụ | Ghi chú |
+|---|---|---|
+| 8443 | Web (HTTPS) | https://localhost:8443, chứng chỉ tự ký nên trình duyệt cảnh báo, chọn Tiếp tục. Cũng proxy `/api` và `/socket.io` |
+| 8081 | Web (HTTP) | Tự chuyển sang https://localhost:8443 |
+| 3001 | API backend | http://localhost:3001/api, HTTP thường |
+| 1884 | MQTT broker | Plaintext, bắt buộc đăng nhập. ESP32 thật dùng IP LAN của máy chạy broker và cổng này |
+| 5433 | PostgreSQL | Chỉ để xem dữ liệu khi phát triển |
+
+**Tài khoản seed mẫu** (chỉ để thử nghiệm, đổi hoặc xóa trước khi triển khai thật):
+
+| Tên đăng nhập | Mật khẩu | Vai trò |
+|---|---|---|
+| `admin` | `Admin@123` | Quản trị |
+| `operator` | `Operator@123` | Vận hành (gửi lệnh, đổi ngưỡng) |
+| `viewer` | `Viewer@123` | Chỉ xem |
+
+`operator` và `viewer` được gán hai thiết bị mẫu `chau-01` (ESP32 thật) và `chau-02` (thiết bị giả). Đăng nhập sai quá 5 lần mỗi phút từ một IP sẽ bị trả 429.
+
+Kiểm tra nhanh:
+
+```bash
+curl -s http://localhost:3001/api/health        # {"status":"ok"}
+docker compose ps                               # chạy trong deployment/
+```
+
+Nếu backend báo `P1000: Authentication failed` sau khi tạo lại `.env`, volume Postgres cũ còn mật khẩu cũ: chạy `docker compose down -v` (xóa dữ liệu) rồi `up -d` lại. Chi tiết broker và cách kiểm tra bằng `mosquitto_sub` ở [deployment/README.md](deployment/README.md).
 
 ### 4.2 Firmware (`firmware/`)
 
@@ -145,6 +192,7 @@ python3 -m venv .venv
 .venv/bin/pip install -r tests/integration/requirements.txt
 cd tests/integration
 ../../.venv/bin/python fake_device.py                       # giữ chạy ở một terminal
+# Máy không có Python: cd tests/backend && npm install, rồi chạy bản Node: node ../integration/fake_device.mjs
 ../../.venv/bin/python measure_cmd_latency.py --device chau-02
 ../../.venv/bin/python send_duplicate_cmd.py --device chau-02
 cd ../.. && ./tests/security/test_broker_acl.sh             # kiểm tra xác thực và ACL
@@ -154,7 +202,7 @@ Kế hoạch kiểm thử và kết quả đã chạy ở [tests/README.md](test
 
 ### 4.4 Backend và frontend
 
-Đang cập nhật.
+Xem [docs/backend-frontend.md](docs/backend-frontend.md): tạo chứng chỉ HTTPS tự ký một lần bằng `node deployment/scripts/gen-cert.mjs`, rồi chạy cả hệ thống bằng `docker compose up -d` trong `deployment/`. Web chạy HTTPS ở https://localhost:8443 (cổng 8081 tự chuyển sang đó).
 
 ## 5. Thư viện bên thứ ba
 
