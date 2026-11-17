@@ -11,3 +11,13 @@ deployment/mosquitto/log/
 __pycache__/
 .venv/
 .claude/
+
+node_modules
+# Build và thư viện
+node_modules/
+dist/
+/package-lock.json
+
+# Chứng chỉ TLS tự sinh (deployment/scripts/gen-cert.mjs)
+deployment/certs/*
+!deployment/certs/.gitkeep
