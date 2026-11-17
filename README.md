@@ -114,9 +114,9 @@ Mỗi thiết bị dùng các topic `devices/<id>/...`, ví dụ `<id>` là `cha
 
 ### Phân quyền broker
 
-Broker bắt buộc đăng nhập (`allow_anonymous false`). File `deployment/mosquitto/config/acl`:
+Broker bắt buộc đăng nhập (`allow_anonymous false`). Quyền do plugin Dynamic Security quản lý, backend tạo khi cấp phát thiết bị (file ACL tĩnh cũ nằm ở `deployment/mosquitto/legacy/`):
 - User `backend` đọc/ghi `devices/#`.
-- Mỗi thiết bị chỉ được ghi `telemetry`, `status`, `ack` và chỉ đọc `cmd`, `config` của topic mang đúng tên đăng nhập của nó (`devices/%u/...`). `chau-02` không thể gửi lệnh hay nghe dữ liệu của `chau-01`.
+- Mỗi thiết bị có role riêng `dev-<id>`, chỉ được ghi `telemetry`, `status`, `ack` và chỉ đọc `cmd`, `config` của topic mang đúng tên đăng nhập của nó (`devices/<id>/...`). `chau-02` không thể gửi lệnh hay nghe dữ liệu của `chau-01`.
 
 ## 3. Cấu trúc thư mục
 
@@ -138,18 +138,46 @@ git clone https://github.com/tanh8805/IoT.git iot-smart-watering
 cd iot-smart-watering
 ```
 
-### 4.1 Broker MQTT (`deployment/`)
+### 4.1 Chạy cả hệ thống: broker, backend, frontend (`deployment/`)
 
-Cần Docker và Docker Compose.
+Cần Docker và Docker Compose, cùng Node.js để chạy hai script tạo cấu hình. Chạy từ thư mục gốc của repo:
 
 ```bash
-cp .env.example .env                       # điền MQTT_HOST và 3 mật khẩu MQTT
-./deployment/mosquitto/create-users.sh     # tạo user backend, chau-01, chau-02
-sudo firewall-cmd --add-port=1883/tcp --permanent && sudo firewall-cmd --reload   # Fedora
-cd deployment && docker compose up -d
+node deployment/scripts/init-env.mjs     # tạo .env với mật khẩu ngẫu nhiên (không ghi đè nếu .env đã có)
+node deployment/scripts/gen-cert.mjs     # tạo chứng chỉ HTTPS tự ký vào deployment/certs (không ghi đè)
+cd deployment && docker compose up -d --build
 ```
 
-Chi tiết và cách kiểm tra bằng `mosquitto_sub` ở [deployment/README.md](deployment/README.md).
+Lần đầu chạy, backend tự áp migration, tạo dữ liệu mẫu và tạo tài khoản MQTT của `chau-01`, `chau-02` trên broker (Mosquitto Dynamic Security). `.env` và chứng chỉ không được đưa vào git.
+
+**Các cổng trên máy host**
+
+| Cổng | Dịch vụ | Ghi chú |
+|---|---|---|
+| 8443 | Web (HTTPS) | https://localhost:8443, chứng chỉ tự ký nên trình duyệt cảnh báo, chọn Tiếp tục. Cũng proxy `/api` và `/socket.io` |
+| 8081 | Web (HTTP) | Tự chuyển sang https://localhost:8443 |
+| 3001 | API backend | http://localhost:3001/api, HTTP thường |
+| 1884 | MQTT broker | Plaintext, bắt buộc đăng nhập. ESP32 thật dùng IP LAN của máy chạy broker và cổng này |
+| 5433 | PostgreSQL | Chỉ để xem dữ liệu khi phát triển |
+
+**Tài khoản seed mẫu** (chỉ để thử nghiệm, đổi hoặc xóa trước khi triển khai thật):
+
+| Tên đăng nhập | Mật khẩu | Vai trò |
+|---|---|---|
+| `admin` | `Admin@123` | Quản trị |
+| `operator` | `Operator@123` | Vận hành (gửi lệnh, đổi ngưỡng) |
+| `viewer` | `Viewer@123` | Chỉ xem |
+
+`operator` và `viewer` được gán hai thiết bị mẫu `chau-01` (ESP32 thật) và `chau-02` (thiết bị giả). Đăng nhập sai quá 5 lần mỗi phút từ một IP sẽ bị trả 429.
+
+Kiểm tra nhanh:
+
+```bash
+curl -s http://localhost:3001/api/health        # {"status":"ok"}
+docker compose ps                               # chạy trong deployment/
+```
+
+Nếu backend báo `P1000: Authentication failed` sau khi tạo lại `.env`, volume Postgres cũ còn mật khẩu cũ: chạy `docker compose down -v` (xóa dữ liệu) rồi `up -d` lại. Chi tiết broker và cách kiểm tra bằng `mosquitto_sub` ở [deployment/README.md](deployment/README.md).
 
 ### 4.2 Firmware (`firmware/`)
 
