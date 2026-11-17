@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Header, HttpCode, Param, ParseIntPipe, Patch, Post, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AlertsService } from './alerts/alerts.service';
 import { AuditService } from './audit/audit.service';
 import { AuthService, TokenPayload } from './auth/auth.service';
+import { LoginThrottlerGuard } from './common/login-throttler.guard';
 import { AuthUser, CurrentToken, CurrentUser, Public, Roles } from './common/auth.types';
 import { CommandsService } from './commands/commands.service';
 import { ConfigService } from './commands/config.service';
@@ -16,6 +17,7 @@ export class AuthController {
   constructor(private readonly auth: AuthService) {}
 
   @Public()
+  @UseGuards(LoginThrottlerGuard)
   @Post('login')
   @HttpCode(200)
   login(@Body() dto: LoginDto, @Req() req: Request) {
