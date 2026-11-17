@@ -1,0 +1,58 @@
+﻿
+> test
+> node --test --test-force-exit --test-timeout=60000 e2e.test.mjs e2e-extra.test.mjs
+
+▶ Tài khoản người dùng
+  ✔ đăng xuất thu hồi token (kể cả websocket), phiên khác của cùng người vẫn dùng được (353.7154ms)
+  ✔ đổi mật khẩu: sai mật khẩu cũ bị từ chối, đổi xong mọi phiên cũ hết hiệu lực (662.7854ms)
+  ✔ cập nhật thông tin cá nhân; không tự đổi được vai trò (177.9744ms)
+  ✔ admin tạo tài khoản kèm email/điện thoại; khóa thì không đăng nhập được, mở khóa đăng nhập lại được (280.3051ms)
+  ✔ non-admin không tạo/khóa tài khoản (403); admin không tự khóa mình (400) (145.8588ms)
+✔ Tài khoản người dùng (1994.4646ms)
+▶ Firmware, phần cứng, thống kê và CSV
+  ✔ admin nhập/sửa phiên bản phần cứng; operator không sửa được (403) (16.2898ms)
+  ✔ lưu phiên bản firmware từ telemetry và ghi lịch sử mỗi lần đổi (không ghi khi giữ nguyên) (2033.9706ms)
+  ✔ thống kê min/max/trung bình theo giờ và theo ngày, có lọc khoảng thời gian (1541.161ms)
+  ✔ xuất CSV đúng khoảng thời gian, đủ cột, kiểm quyền và ghi audit (23.0718ms)
+✔ Firmware, phần cứng, thống kê và CSV (4105.9004ms)
+▶ HTTPS cho web
+  ✔ web phục vụ qua HTTPS với chứng chỉ tự ký và proxy được API (15.306ms)
+  ✔ trình duyệt/máy khách bắt buộc xác minh sẽ từ chối chứng chỉ tự ký (6.1663ms)
+  ✔ cổng HTTP tự chuyển sang HTTPS (3.3306ms)
+  ✔ socket.io chạy được trên wss qua HTTPS (72.5822ms)
+✔ HTTPS cho web (97.8119ms)
+▶ Xác thực
+  ✔ đăng nhập sai mật khẩu bị từ chối (401) (120.3805ms)
+  ✔ đăng nhập sai tên đăng nhập bị từ chối (401) (7.4169ms)
+  ✔ không có token bị từ chối (401) (58.751ms)
+  ✔ token rác bị từ chối (401) (2.3531ms)
+  ✔ token ký bằng secret sai bị từ chối (401) (2.9473ms)
+  ✔ token hết hạn bị từ chối (401) (66.5763ms)
+✔ Xác thực (631.7461ms)
+▶ Phân quyền
+  ✔ viewer gửi lệnh bị 403 (6.4686ms)
+  ✔ viewer đổi cấu hình bị 403 (5.5651ms)
+  ✔ viewer và operator không vào được API quản trị (403) (14.2043ms)
+  ✔ người dùng không được gán thiết bị thì không xem được (593.7785ms)
+✔ Phân quyền (620.5847ms)
+▶ Lệnh và cấu hình
+  ✔ operator gửi lệnh bơm và nhận ack ok từ thiết bị (658.1448ms)
+  ✔ duration_s ngoài 1–15 bị từ chối (400) (5.992ms)
+  ✔ cấu hình lux_open >= lux_close bị từ chối (400) (62.1393ms)
+✔ Lệnh và cấu hình (726.6066ms)
+▶ Telemetry
+  ✔ telemetry sai định dạng bị từ chối và ghi log, không lưu (2553.5265ms)
+  ✔ API lịch sử telemetry lọc theo thời gian (8.564ms)
+✔ Telemetry (2562.3406ms)
+▶ Vòng đời thiết bị
+  ✔ thiết bị bị Decommissioned không kết nối được broker (498.4785ms)
+  ✔ thiết bị đang bảo trì từ chối lệnh điều khiển (409) (30.009ms)
+✔ Vòng đời thiết bị (528.714ms)
+ℹ tests 30
+ℹ suites 8
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6361.8431
