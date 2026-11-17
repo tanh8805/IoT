@@ -13,7 +13,7 @@ export interface StatBucket {
 }
 export interface StatsResult { granularity: 'hour' | 'day'; tz: string; units: { soil: string; lux: string }; buckets: StatBucket[] }
 export interface Telemetry { id?: number; deviceId: string; ts: string; soilRaw: number; soilPct: number; lux: number | null; pump: boolean; curtain: string | null; autoBlocked: boolean; fw: string | null }
-export interface Device { id: string; name: string; location: string; state: DeviceState; lastSeenAt: string | null; lastTelemetry: Telemetry | null; soilThreshold: number; luxClose: number; luxOpen: number; fwVersion?: string | null; hwVersion?: string | null }
+export interface Device { id: string; name: string; location: string; state: DeviceState; lastSeenAt: string | null; lastTelemetry: Telemetry | null; soilThreshold: number; lowSoilPct: number; luxClose: number; luxOpen: number; fwVersion?: string | null; hwVersion?: string | null }
 export interface Command { id: string; deviceId: string; action: string; durationS: number | null; status: 'PENDING' | 'OK' | 'ERROR' | 'TIMEOUT'; msg: string; username: string; createdAt: string; ackedAt: string | null }
 export interface Alert { id: number; deviceId: string; type: string; severity: 'INFO' | 'WARNING' | 'CRITICAL'; status: 'NEW' | 'ACKNOWLEDGED' | 'RESOLVED'; message: string; createdAt: string; ackedByName: string | null; ackedAt: string | null; resolvedAt: string | null }
 export interface AuditLog { id: number; at: string; username: string; action: string; target: string | null; detail: unknown; ip: string | null }

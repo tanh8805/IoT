@@ -30,7 +30,7 @@ export function DeviceDetail() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [duration, setDuration] = useState(5);
-  const [cfg, setCfg] = useState({ soil_threshold: 40, lux_close: 10000, lux_open: 5000 });
+  const [cfg, setCfg] = useState({ soil_threshold: 40, lux_close: 10000, lux_open: 5000, low_soil_pct: 20 });
 
   const [fwLog, setFwLog] = useState<FirmwareChange[]>([]);
   const [gran, setGran] = useState<'hour' | 'day'>('hour');
@@ -57,7 +57,7 @@ export function DeviceDetail() {
   const loadAll = useCallback(() => {
     api<Device>(`/devices/${id}`).then((d) => {
       setDevice(d);
-      setCfg({ soil_threshold: d.soilThreshold, lux_close: d.luxClose, lux_open: d.luxOpen });
+      setCfg({ soil_threshold: d.soilThreshold, lux_close: d.luxClose, lux_open: d.luxOpen, low_soil_pct: d.lowSoilPct });
     }).catch((e) => setError(e.message));
     api<Command[]>(`/devices/${id}/commands`).then(setCommands).catch(() => undefined);
     api<Alert[]>(`/alerts?deviceId=${id}`).then(setAlerts).catch(() => undefined);
@@ -269,6 +269,7 @@ export function DeviceDetail() {
           <form className="card" onSubmit={saveConfig}>
             <b>Ngưỡng tự động</b>
             <label>Tưới khi độ ẩm dưới (%)<input type="number" min={5} max={95} value={cfg.soil_threshold} onChange={(e) => setCfg({ ...cfg, soil_threshold: Number(e.target.value) })} /></label>
+            <label>Cảnh báo đất khô khi độ ẩm dưới (%)<input type="number" min={1} max={95} value={cfg.low_soil_pct} onChange={(e) => setCfg({ ...cfg, low_soil_pct: Number(e.target.value) })} /></label>
             <label>Đóng màn khi sáng trên (lux)<input type="number" min={1} value={cfg.lux_close} onChange={(e) => setCfg({ ...cfg, lux_close: Number(e.target.value) })} /></label>
             <label>Mở màn khi sáng dưới (lux)<input type="number" min={1} value={cfg.lux_open} onChange={(e) => setCfg({ ...cfg, lux_open: Number(e.target.value) })} /></label>
             <button className="btn primary" disabled={!controllable}>Lưu ngưỡng</button>
@@ -339,8 +340,8 @@ export function DeviceDetail() {
               <tr key={c.id}>
                 <td>{fmtTime(c.at)}</td>
                 <td>{c.username}</td>
-                <td>{`ẩm<${c.oldValue.soil_threshold}%, đóng>${c.oldValue.lux_close}, mở<${c.oldValue.lux_open}`}</td>
-                <td>{`ẩm<${c.newValue.soil_threshold}%, đóng>${c.newValue.lux_close}, mở<${c.newValue.lux_open}`}</td>
+                <td>{`ẩm<${c.oldValue.soil_threshold}%, cảnh báo<${c.oldValue.low_soil_pct ?? '-'}%, đóng>${c.oldValue.lux_close}, mở<${c.oldValue.lux_open}`}</td>
+                <td>{`ẩm<${c.newValue.soil_threshold}%, cảnh báo<${c.newValue.low_soil_pct ?? '-'}%, đóng>${c.newValue.lux_close}, mở<${c.newValue.lux_open}`}</td>
               </tr>
             ))}
             {cfgLog.length === 0 && <tr><td colSpan={4} className="muted">Chưa đổi ngưỡng lần nào.</td></tr>}

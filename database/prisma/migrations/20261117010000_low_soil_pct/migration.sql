@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Device" ADD COLUMN     "lowSoilPct" INTEGER NOT NULL DEFAULT 20;

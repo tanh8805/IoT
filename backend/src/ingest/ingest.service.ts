@@ -8,7 +8,6 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
 import { plausibilityProblem, validateTelemetry } from './telemetry.validator';
 
-const LOW_SOIL_PCT = 20;
 const TOPIC_RE = /^devices\/([^/]+)\/(telemetry|status|ack)$/;
 
 /** Nhận bản tin MQTT của thiết bị: kiểm tra, lưu, cập nhật vòng đời, sinh cảnh báo, đẩy realtime. */
@@ -106,8 +105,8 @@ export class IngestService implements OnModuleInit {
     await this.alerts.resolve(device.id, 'DEVICE_OFFLINE');
     await this.alerts.resolve(device.id, 'ABNORMAL_DATA');
 
-    if (d.soilPct < LOW_SOIL_PCT) {
-      await this.alerts.raise(device.id, 'LOW_SOIL', d.soilPct < 10 ? 'CRITICAL' : 'WARNING', `Đất khô: độ ẩm ${d.soilPct}% (dưới ${LOW_SOIL_PCT}%)`);
+    if (d.soilPct < device.lowSoilPct) {
+      await this.alerts.raise(device.id, 'LOW_SOIL', d.soilPct < 10 ? 'CRITICAL' : 'WARNING', `Đất khô: độ ẩm ${d.soilPct}% (dưới ${device.lowSoilPct}%)`);
     } else {
       await this.alerts.resolve(device.id, 'LOW_SOIL');
     }

@@ -147,7 +147,7 @@ Realtime: socket.io tại cùng cổng, gửi JWT trong `auth.token`; sự kiệ
 - **Thống kê:** gom theo giờ/ngày trong PostgreSQL (`date_trunc`) theo múi giờ `tz`. Chỉ số lux bỏ qua mẫu `lux = null` (cột `lux.samples` cho biết số mẫu có lux); độ ẩm tính trên mọi mẫu. Giá trị trung bình làm tròn 1 chữ số thập phân.
 - **Điều khiển:** chỉ khi ACTIVE hoặc FAULT; OFFLINE/MAINTENANCE/DECOMMISSIONED/chưa hoạt động trả 409.
 - **Telemetry:** kiểm kiểu và khoảng (`soil_raw` 0–4095, `soil_pct` 0–100, `lux` ≥ 0 hoặc null, `ts` null/lệch xa thì dùng giờ server); sai thì từ chối, ghi bảng `IngestError`, sinh cảnh báo ABNORMAL_DATA.
-- **Cảnh báo:** đất dưới 20% (LOW_SOIL, dưới 10% là CRITICAL), `auto_blocked` (AUTO_BLOCKED), thiết bị offline (DEVICE_OFFLINE), dữ liệu bất thường (ABNORMAL_DATA). Mới → Đã xác nhận → Đã hết (tự đóng khi điều kiện hết). Không tạo trùng khi đã có cảnh báo cùng loại chưa đóng.
+- **Cảnh báo:** đất dưới ngưỡng cảnh báo của từng thiết bị (`lowSoilPct`, mặc định 20%, sửa qua `POST /devices/:id/config` trường `low_soil_pct`) (LOW_SOIL, dưới 10% là CRITICAL), `auto_blocked` (AUTO_BLOCKED), thiết bị offline (DEVICE_OFFLINE), dữ liệu bất thường (ABNORMAL_DATA). Mới → Đã xác nhận → Đã hết (tự đóng khi điều kiện hết). Không tạo trùng khi đã có cảnh báo cùng loại chưa đóng.
 - **Audit:** đăng nhập (kể cả thất bại), gửi lệnh, đổi cấu hình, đổi trạng thái thiết bị, thêm/sửa/khóa người dùng, gán thiết bị, xác nhận cảnh báo, truy cập bị từ chối.
 
 ## 9. Giới hạn đã biết

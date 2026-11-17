@@ -71,6 +71,7 @@ export class ConfigDto {
   @IsOptional() @IsInt() @Min(5) @Max(95) soil_threshold?: number;
   @IsOptional() @IsNumber() @Min(1) @Max(200000) lux_close?: number;
   @IsOptional() @IsNumber() @Min(1) @Max(200000) lux_open?: number;
+  @IsOptional() @IsInt() @Min(1) @Max(95) low_soil_pct?: number;
 }
 
 export class AlertQueryDto {

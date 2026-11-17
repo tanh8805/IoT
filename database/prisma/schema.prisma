@@ -88,6 +88,8 @@ model Device {
   soilThreshold Int         @default(40)
   luxClose      Float       @default(10000)
   luxOpen       Float       @default(5000)
+  // Ngưỡng cảnh báo đất khô (%): độ ẩm dưới mức này thì sinh cảnh báo LOW_SOIL. Chỉ backend dùng, không gửi xuống thiết bị.
+  lowSoilPct    Int         @default(20)
   // fwVersion lấy từ trường fw trong telemetry; hwVersion do admin nhập.
   fwVersion     String?
   hwVersion     String?

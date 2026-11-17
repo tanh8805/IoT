@@ -11,6 +11,7 @@ export interface ConfigInput {
   soil_threshold?: number;
   lux_close?: number;
   lux_open?: number;
+  low_soil_pct?: number;
 }
 
 @Injectable()
@@ -28,26 +29,32 @@ export class ConfigService {
   async change(user: AuthUser, deviceId: string, dto: ConfigInput, ip?: string) {
     const device = await this.access.assertAccess(user, deviceId);
     this.commands.assertControllable(device.state);
-    if (dto.soil_threshold === undefined && dto.lux_close === undefined && dto.lux_open === undefined) {
-      throw new BadRequestException('Cần ít nhất một trong soil_threshold, lux_close, lux_open');
+    if (dto.soil_threshold === undefined && dto.lux_close === undefined && dto.lux_open === undefined && dto.low_soil_pct === undefined) {
+      throw new BadRequestException('Cần ít nhất một trong soil_threshold, lux_close, lux_open, low_soil_pct');
     }
 
-    const oldValue = { soil_threshold: device.soilThreshold, lux_close: device.luxClose, lux_open: device.luxOpen };
+    const oldValue = { soil_threshold: device.soilThreshold, lux_close: device.luxClose, lux_open: device.luxOpen, low_soil_pct: device.lowSoilPct };
     const newValue = {
       soil_threshold: dto.soil_threshold ?? device.soilThreshold,
       lux_close: dto.lux_close ?? device.luxClose,
       lux_open: dto.lux_open ?? device.luxOpen,
+      low_soil_pct: dto.low_soil_pct ?? device.lowSoilPct,
     };
     if (newValue.lux_open >= newValue.lux_close) throw new BadRequestException('lux_open phải nhỏ hơn lux_close');
 
-    try {
-      await this.mqtt.publish(`devices/${deviceId}/config`, JSON.stringify(newValue), 1, true);
-    } catch (e) {
-      throw new BadRequestException(`Không gửi được cấu hình lên broker: ${(e as Error).message}`);
+    // low_soil_pct chỉ backend dùng để sinh cảnh báo nên không gửi xuống thiết bị; chỉ publish khi đổi ngưỡng của thiết bị.
+    const deviceSide = dto.soil_threshold !== undefined || dto.lux_close !== undefined || dto.lux_open !== undefined;
+    if (deviceSide) {
+      const { soil_threshold, lux_close, lux_open } = newValue;
+      try {
+        await this.mqtt.publish(`devices/${deviceId}/config`, JSON.stringify({ soil_threshold, lux_close, lux_open }), 1, true);
+      } catch (e) {
+        throw new BadRequestException(`Không gửi được cấu hình lên broker: ${(e as Error).message}`);
+      }
     }
     const updated = await this.prisma.device.update({
       where: { id: deviceId },
-      data: { soilThreshold: newValue.soil_threshold, luxClose: newValue.lux_close, luxOpen: newValue.lux_open },
+      data: { soilThreshold: newValue.soil_threshold, luxClose: newValue.lux_close, luxOpen: newValue.lux_open, lowSoilPct: newValue.low_soil_pct },
     });
     await this.prisma.configChange.create({ data: { deviceId, userId: user.id, username: user.username, oldValue, newValue } });
     await this.audit.log({ userId: user.id, username: user.username, action: 'CONFIG_CHANGE', target: `device:${deviceId}`, detail: { from: oldValue, to: newValue }, ip });
