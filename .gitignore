@@ -21,3 +21,5 @@ dist/
 # Chứng chỉ TLS tự sinh (deployment/scripts/gen-cert.mjs)
 deployment/certs/*
 !deployment/certs/.gitkeep
+
+.vscode
