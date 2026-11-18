@@ -29,5 +29,5 @@ const int   DEFAULT_SOIL_THRESHOLD = 40;
 const float DEFAULT_LUX_CLOSE      = 10000;
 const float DEFAULT_LUX_OPEN       = 5000;
 
-const int SERVO_OPEN_DEG   = 0;
-const int SERVO_CLOSED_DEG = 90;
+const int SERVO_OPEN_DEG   = 90;
+const int SERVO_CLOSED_DEG = 0;

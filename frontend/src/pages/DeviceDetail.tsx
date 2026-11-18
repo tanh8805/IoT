@@ -35,17 +35,28 @@ export function DeviceDetail() {
   const [fwLog, setFwLog] = useState<FirmwareChange[]>([]);
   const [gran, setGran] = useState<'hour' | 'day'>('hour');
   const [sFrom, setSFrom] = useState(() => toLocalInput(new Date(Date.now() - 24 * 3600_000)));
-  const [sTo, setSTo] = useState(() => toLocalInput(new Date()));
+  const [sTo, setSTo] = useState(''); // trống = đến bây giờ, để bấm Xem luôn lấy dữ liệu mới nhất
   const [stats, setStats] = useState<StatsResult | null>(null);
 
+  /** Khoảng Từ–Đến dạng ISO; null nếu ô ngày đang nhập dở hoặc sai. */
+  const statsRange = () => {
+    const from = new Date(sFrom), to = sTo ? new Date(sTo) : new Date();
+    if (isNaN(from.getTime()) || isNaN(to.getTime()) || from >= to) { setError('Khoảng Từ–Đến không hợp lệ.'); return null; }
+    return { from: from.toISOString(), to: to.toISOString() };
+  };
+
   const loadStats = useCallback(() => {
-    const q = new URLSearchParams({ granularity: gran, tz: TZ, from: new Date(sFrom).toISOString(), to: new Date(sTo).toISOString() });
+    const r = statsRange();
+    if (!r) return;
+    const q = new URLSearchParams({ granularity: gran, tz: TZ, ...r });
     api<StatsResult>(`/devices/${id}/stats?${q}`).then((r) => { setStats(r); setError(''); }).catch((e) => setError(e.message));
   }, [id, gran, sFrom, sTo]);
   useEffect(loadStats, [loadStats]);
 
   const exportCsv = () => {
-    const q = new URLSearchParams({ from: new Date(sFrom).toISOString(), to: new Date(sTo).toISOString() });
+    const r = statsRange();
+    if (!r) return;
+    const q = new URLSearchParams(r);
     downloadCsv(`/devices/${id}/telemetry/export?${q}`, `telemetry-${id}.csv`).catch((e) => setError(e.message));
   };
 
@@ -223,7 +234,7 @@ export function DeviceDetail() {
               </select>
             </label>
             <label>Từ<input type="datetime-local" value={sFrom} onChange={(e) => setSFrom(e.target.value)} /></label>
-            <label>Đến<input type="datetime-local" value={sTo} onChange={(e) => setSTo(e.target.value)} /></label>
+            <label>Đến (trống = bây giờ)<input type="datetime-local" value={sTo} onChange={(e) => setSTo(e.target.value)} /></label>
             <button className="btn small" onClick={loadStats}>Xem</button>
             <button className="btn small" onClick={exportCsv}>Xuất CSV</button>
           </div>
